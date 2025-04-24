@@ -52,7 +52,13 @@
         <artifactId>poi-ooxml</artifactId>
         <version>5.2.3</version>
     </dependency>
-	</dependencies>
+	
+   <dependency>
+     <groupId>com.airhacks</groupId>
+     <artifactId>sheetfit</artifactId>
+     <version>0.0.2</version>
+   </dependency>
+ </dependencies>
 
 	<build>
 		<plugins>
