@@ -1,6 +1,8 @@
 // DailyCost.java
 package com.prjt2cs.project.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -36,8 +38,8 @@ public class DailyCost {
     private Double security; // Changed to camelCase
     private Double dailyCost; // Changed to camelCase
 
-    @OneToOne
-    @JoinColumn(name = "report_id")
+    @OneToOne(mappedBy = "dailyCost")
+    @JsonBackReference
     private Report report;
 
     // Constructors

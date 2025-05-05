@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 @Entity
 @Table(name = "OPERATION")
 public class Operation {
@@ -27,6 +29,7 @@ public class Operation {
 
     @ManyToOne
     @JoinColumn(name = "report_id")
+    @JsonBackReference
     private Report report;
 
     // Getters and Setters

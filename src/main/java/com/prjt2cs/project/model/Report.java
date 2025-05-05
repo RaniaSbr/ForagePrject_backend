@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 @Entity
 @Table(name = "REP")
 public class Report {
@@ -26,9 +28,11 @@ public class Report {
     private LocalDate date;
 
     @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<Operation> operations = new ArrayList<>();
 
-    @OneToOne(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne
+    @JsonManagedReference
     private DailyCost dailyCost;
 
     // Getters and Setters
