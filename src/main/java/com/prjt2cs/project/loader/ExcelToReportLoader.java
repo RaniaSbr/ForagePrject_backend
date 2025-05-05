@@ -72,12 +72,17 @@ public class ExcelToReportLoader implements CommandLineRunner {
                     }
                     report.setCost(costValue);
                     int dailyCostSheetIndex = 1; // Feuille pour les coûts quotidiens - à ajuster
+                    System.out.println("Utilisation de la feuille à l'index " + dailyCostSheetIndex);
 
                     report.setDate(LocalDate.now());
 
                     // First save to get an ID for the report
                     reportRepository.save(report);
                     System.out.println("Initial report created: " + act + ", depth=" + depth + ", cost=" + costValue);
+
+                    System.out.println("Utilisation de la feuille à l'index " + dailyCostSheetIndex
+                            + " pour les coûts quotidiens");
+
                     try {
                         System.out.println("Importing daily costs from sheet " + dailyCostSheetIndex);
                         DailyCost dailyCost = dailyCostLoader.importDailyCostFromExcel(fileName, dailyCostSheetIndex,
@@ -87,6 +92,7 @@ public class ExcelToReportLoader implements CommandLineRunner {
                         System.out.println("Error importing daily costs: " + e.getMessage());
                         e.printStackTrace();
                     }
+
                     // Counter for successful operations
                     int operationsAdded = 0;
 

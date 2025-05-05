@@ -4,7 +4,7 @@ import com.prjt2cs.project.model.DailyCost;
 import com.prjt2cs.project.model.Report;
 import com.prjt2cs.project.repository.DailyCostRepository;
 import com.prjt2cs.project.repository.ReportRepository;
-import com.prjt2cs.project.service.ExcelReader;
+import com.prjt2cs.project.service.MonoReader;
 
 import org.springframework.stereotype.Service;
 
@@ -13,30 +13,21 @@ import java.util.Optional;
 @Service
 public class DailyCostLoader {
 
-    private final ExcelReader excelReader;
+    private final MonoReader monoReader;
     private final DailyCostRepository dailyCostRepository;
     private final ReportRepository reportRepository;
 
-    public DailyCostLoader(ExcelReader excelReader,
+    public DailyCostLoader(MonoReader monoReader,
             DailyCostRepository dailyCostRepository,
             ReportRepository reportRepository) {
-        this.excelReader = excelReader;
+        this.monoReader = monoReader;
         this.dailyCostRepository = dailyCostRepository;
         this.reportRepository = reportRepository;
     }
 
-    /**
-     * Importe les données de coût quotidien à partir d'un fichier Excel et les
-     * associe à un rapport
-     * 
-     * @param fileName   Nom du fichier Excel
-     * @param sheetIndex Index de la feuille Excel (la deuxième feuille correspond à
-     *                   l'index 1)
-     * @param reportId   ID du rapport auquel associer les coûts
-     * @return DailyCost objet créé et sauvegardé
-     */
     public DailyCost importDailyCostFromExcel(String fileName, int sheetIndex, Long reportId) {
-        // Vérifier que le rapport existe
+        System.out.println("Attempting to read daily costs from file: " + fileName + ", sheet: " + sheetIndex);
+
         Optional<Report> reportOpt = reportRepository.findById(reportId);
         if (!reportOpt.isPresent()) {
             throw new IllegalArgumentException("Report with ID " + reportId + " not found");
@@ -44,129 +35,47 @@ public class DailyCostLoader {
 
         Report report = reportOpt.get();
 
-        // Créer un nouvel objet DailyCost
         DailyCost dailyCost = new DailyCost();
         dailyCost.setName("Daily Cost for " + report.getDate());
 
-        // Lire les valeurs de chaque coût depuis la feuille Excel
-        // Supposons que les valeurs sont dans la colonne Col pour chaque ligne
+        String col = "G";
+        // Use readCalculatedCellAsDouble instead of readDoubleValue
+        dailyCost.setDrillingRig(monoReader.readCalculatedCellAsDouble(fileName, col, 12, sheetIndex));
+        System.out.println("DrillingRig: " + dailyCost.getDrillingRig());
 
-        // En supposant que les données sont organisées avec les noms dans une colonne
-        // et les valeurs dans une autre
-        // Ajuster les numéros de ligne en fonction de la structure réelle de votre
+        dailyCost.setMudLogging(monoReader.readCalculatedCellAsDouble(fileName, col, 17, sheetIndex));
+        System.out.println("MudLogging: " + dailyCost.getMudLogging());
 
-        // Excel
-        String Col = "G";
-        dailyCost.setDrillingRig(readDoubleValue(fileName, Col, Col, 12, sheetIndex));
-        dailyCost.setMudLogging(readDoubleValue(fileName, Col, Col, 17, sheetIndex));
-        dailyCost.setDownwholeTools(readDoubleValue(fileName, Col, Col, 21, sheetIndex));
-        dailyCost.setDrillingMud(readDoubleValue(fileName, Col, Col, 26, sheetIndex));
-        dailyCost.setSolidControl(readDoubleValue(fileName, Col, Col, 31, sheetIndex));
-        dailyCost.setElectricServices(readDoubleValue(fileName, Col, Col, 37, sheetIndex));
-        dailyCost.setBits(readDoubleValue(fileName, Col, Col, 40, sheetIndex));
-        dailyCost.setCasing(readDoubleValue(fileName, Col, Col, 44, sheetIndex));
-        dailyCost.setAccesoriesCasing(readDoubleValue(fileName, Col, Col, 50, sheetIndex));
-        dailyCost.setCasingTubing(readDoubleValue(fileName, Col, Col, 54, sheetIndex));
-        dailyCost.setCementing(readDoubleValue(fileName, Col, Col, 59, sheetIndex));
-        dailyCost.setRigSupervision(readDoubleValue(fileName, Col, Col, 65, sheetIndex));
-        dailyCost.setCommunications(readDoubleValue(fileName, Col, Col, 72, sheetIndex));
-        dailyCost.setWaterSupply(readDoubleValue(fileName, Col, Col, 73, sheetIndex));
-        dailyCost.setWaterServices(readDoubleValue(fileName, Col, Col, 79, sheetIndex));
-        dailyCost.setSecurity(readDoubleValue(fileName, Col, Col, 83, sheetIndex));
+        dailyCost.setDownwholeTools(monoReader.readCalculatedCellAsDouble(fileName, col, 21, sheetIndex));
+        System.out.println("DownwholeTools: " + dailyCost.getDownwholeTools());
 
-        // Calculer le coût quotidien total (somme de tous les coûts)
-        dailyCost.setCommunications(readDoubleValue(fileName, Col, Col, 85, sheetIndex));
+        dailyCost.setDrillingMud(monoReader.readCalculatedCellAsDouble(fileName, col, 26, sheetIndex));
+        dailyCost.setSolidControl(monoReader.readCalculatedCellAsDouble(fileName, col, 31, sheetIndex));
+        dailyCost.setElectricServices(monoReader.readCalculatedCellAsDouble(fileName, col, 37, sheetIndex));
+        dailyCost.setBits(monoReader.readCalculatedCellAsDouble(fileName, col, 40, sheetIndex));
+        dailyCost.setCasing(monoReader.readCalculatedCellAsDouble(fileName, col, 44, sheetIndex));
+        dailyCost.setAccesoriesCasing(monoReader.readCalculatedCellAsDouble(fileName, col, 50, sheetIndex));
+        dailyCost.setCasingTubing(monoReader.readCalculatedCellAsDouble(fileName, col, 54, sheetIndex));
+        dailyCost.setCementing(monoReader.readCalculatedCellAsDouble(fileName, col, 59, sheetIndex));
+        dailyCost.setRigSupervision(monoReader.readCalculatedCellAsDouble(fileName, col, 65, sheetIndex));
+        dailyCost.setCommunications(monoReader.readCalculatedCellAsDouble(fileName, col, 72, sheetIndex));
+        dailyCost.setWaterSupply(monoReader.readCalculatedCellAsDouble(fileName, col, 73, sheetIndex));
+        dailyCost.setWaterServices(monoReader.readCalculatedCellAsDouble(fileName, col, 79, sheetIndex));
+        dailyCost.setSecurity(monoReader.readCalculatedCellAsDouble(fileName, col, 83, sheetIndex));
 
-        // Associer le DailyCost au Report
+        // Read the total daily cost from G85 with formula evaluation
+        dailyCost.setDailyCost(monoReader.readCalculatedCellAsDouble(fileName, col, 85, sheetIndex));
+        System.out.println("Total Daily Cost from cell G85: " + dailyCost.getDailyCost());
+
+        // Set bidirectional relationship
         dailyCost.setReport(report);
         report.setDailyCost(dailyCost);
 
-        // Sauvegarder dans la base de données
-        return dailyCostRepository.save(dailyCost);
-    }
+        // Save and return the dailyCost
+        DailyCost savedDailyCost = dailyCostRepository.save(dailyCost);
+        System.out.println("Daily cost saved with ID: " + savedDailyCost.getId() +
+                ", Total cost: " + savedDailyCost.getDailyCost());
 
-    /**
-     * Importe les données à partir d'un fichier Excel en utilisant le nom de la
-     * feuille
-     */
-    public DailyCost importDailyCostFromExcel(String fileName, String sheetName, Long reportId) {
-        // On peut utiliser cette méthode si on préfère accéder à la feuille par son nom
-        // Logique similaire à la méthode précédente
-
-        // Vérifier que le rapport existe
-        Optional<Report> reportOpt = reportRepository.findById(reportId);
-        if (!reportOpt.isPresent()) {
-            throw new IllegalArgumentException("Report with ID " + reportId + " not found");
-        }
-
-        Report report = reportOpt.get();
-
-        // Créer un nouvel objet DailyCost
-        DailyCost dailyCost = new DailyCost();
-        dailyCost.setName("Daily Cost for " + report.getDate());
-
-        String Col = "G";
-
-        // Lire les valeurs de chaque coût depuis la feuille Excel spécifiée par son nom
-        dailyCost.setDrillingRig(readDoubleValue(fileName, Col, Col, 5, sheetName));
-        dailyCost.setMudLogging(readDoubleValue(fileName, Col, Col, 6, sheetName));
-        dailyCost.setDownwholeTools(readDoubleValue(fileName, Col, Col, 7, sheetName));
-        dailyCost.setDrillingMud(readDoubleValue(fileName, Col, Col, 8, sheetName));
-        dailyCost.setSolidControl(readDoubleValue(fileName, Col, Col, 9, sheetName));
-        dailyCost.setElectricServices(readDoubleValue(fileName, Col, Col, 10, sheetName));
-        dailyCost.setBits(readDoubleValue(fileName, Col, Col, 11, sheetName));
-        dailyCost.setCasing(readDoubleValue(fileName, Col, Col, 12, sheetName));
-        dailyCost.setAccesoriesCasing(readDoubleValue(fileName, Col, Col, 13, sheetName));
-        dailyCost.setCasingTubing(readDoubleValue(fileName, Col, Col, 14, sheetName));
-        dailyCost.setCementing(readDoubleValue(fileName, Col, Col, 15, sheetName));
-        dailyCost.setRigSupervision(readDoubleValue(fileName, Col, Col, 16, sheetName));
-        dailyCost.setCommunications(readDoubleValue(fileName, Col, Col, 17, sheetName));
-        dailyCost.setWaterSupply(readDoubleValue(fileName, Col, Col, 18, sheetName));
-        dailyCost.setWaterServices(readDoubleValue(fileName, Col, Col, 19, sheetName));
-        dailyCost.setSecurity(readDoubleValue(fileName, Col, Col, 20, sheetName));
-
-        dailyCost.setCommunications(readDoubleValue(fileName, Col, Col, 85, sheetName));
-
-        // Associer le DailyCost au Report
-        dailyCost.setReport(report);
-        report.setDailyCost(dailyCost);
-
-        // Sauvegarder dans la base de données
-        return dailyCostRepository.save(dailyCost);
-    }
-
-    /**
-     * Lit une valeur d'une cellule Excel et la convertit en Double
-     */
-    private Double readDoubleValue(String fileName, String startColumn, String endColumn, int rowIndex,
-            int sheetIndex) {
-        String value = excelReader.readCellRangeConcatenated(fileName, startColumn, endColumn, rowIndex, sheetIndex);
-        if (value == null || value.isEmpty()) {
-            return 0.0;
-        }
-        try {
-            return Double.parseDouble(value);
-        } catch (NumberFormatException e) {
-            // Si la conversion échoue, renvoyer 0.0
-            return 0.0;
-        }
-    }
-
-    /**
-     * Lit une valeur d'une cellule Excel et la convertit en Double (version avec
-     * nom de feuille)
-     */
-    private Double readDoubleValue(String fileName, String startColumn, String endColumn, int rowIndex,
-            String sheetName) {
-        String value = excelReader.readCellRangeConcatenated(fileName, startColumn, endColumn, rowIndex, sheetName);
-        if (value == null || value.isEmpty()) {
-            return 0.0;
-        }
-        try {
-            return Double.parseDouble(value);
-        } catch (NumberFormatException e) {
-            // Si la conversion échoue, renvoyer 0.0
-            return 0.0;
-        }
+        return savedDailyCost;
     }
 }

@@ -8,11 +8,6 @@ import java.util.List;
 @Entity
 @Table(name = "REP")
 public class Report {
-    @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Operation> operations = new ArrayList<>();
-
-    @OneToOne(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
-    private DailyCost dailyCost;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,7 +25,13 @@ public class Report {
     @Column(name = "REPORT_DATE")
     private LocalDate date;
 
-    // Getters et Setters
+    @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Operation> operations = new ArrayList<>();
+
+    @OneToOne(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
+    private DailyCost dailyCost;
+
+    // Getters and Setters
     public Long getId() {
         return id;
     }

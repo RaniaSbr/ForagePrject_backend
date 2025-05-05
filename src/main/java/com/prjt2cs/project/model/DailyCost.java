@@ -1,3 +1,4 @@
+// DailyCost.java
 package com.prjt2cs.project.model;
 
 import jakarta.persistence.Entity;
@@ -17,58 +18,58 @@ public class DailyCost {
     private Long id;
 
     private String name;
-    private Double DrillingRig;
-    private Double MudLogging;
-    private Double DownwholeTools;
-    private Double DrillingMud;
-    private Double SolidControl;
-    private Double ElectricServices;
-    private Double Bits;
-    private Double Casing;
-    private Double AccesoriesCasing;
-    private Double CasingTubing;
-    private Double Cementing;
-    private Double RigSupervision;
-    private Double Communications;
-    private Double WaterSupply;
-    private Double WaterServices;
-    private Double Security;
-    private Double DailyCost;
+    private Double drillingRig; // Changed to camelCase
+    private Double mudLogging; // Changed to camelCase
+    private Double downwholeTools; // Changed to camelCase
+    private Double drillingMud; // Changed to camelCase
+    private Double solidControl; // Changed to camelCase
+    private Double electricServices; // Changed to camelCase
+    private Double bits; // Changed to camelCase
+    private Double casing; // Changed to camelCase
+    private Double accesoriesCasing; // Changed to camelCase
+    private Double casingTubing; // Changed to camelCase
+    private Double cementing; // Changed to camelCase
+    private Double rigSupervision; // Changed to camelCase
+    private Double communications; // Changed to camelCase
+    private Double waterSupply; // Changed to camelCase
+    private Double waterServices; // Changed to camelCase
+    private Double security; // Changed to camelCase
+    private Double dailyCost; // Changed to camelCase
 
     @OneToOne
     @JoinColumn(name = "report_id")
     private Report report;
 
-    // Constructeurs
+    // Constructors
     public DailyCost() {
     }
 
-    public DailyCost(String name, Double DrillingRig, Double MudLogging, Double DownwholeTools,
-            Double DrillingMud, Double SolidControl, Double ElectricServices, Double Bits,
-            Double Casing, Double AccesoriesCasing, Double CasingTubing, Double Cementing,
-            Double RigSupervision, Double Communications, Double WaterSupply,
-            Double WaterServices, Double Security, Double DailyCost) {
+    public DailyCost(String name, Double drillingRig, Double mudLogging, Double downwholeTools,
+            Double drillingMud, Double solidControl, Double electricServices, Double bits,
+            Double casing, Double accesoriesCasing, Double casingTubing, Double cementing,
+            Double rigSupervision, Double communications, Double waterSupply,
+            Double waterServices, Double security, Double dailyCost) {
         this.name = name;
-        this.DrillingRig = DrillingRig;
-        this.MudLogging = MudLogging;
-        this.DownwholeTools = DownwholeTools;
-        this.DrillingMud = DrillingMud;
-        this.SolidControl = SolidControl;
-        this.ElectricServices = ElectricServices;
-        this.Bits = Bits;
-        this.Casing = Casing;
-        this.AccesoriesCasing = AccesoriesCasing;
-        this.CasingTubing = CasingTubing;
-        this.Cementing = Cementing;
-        this.RigSupervision = RigSupervision;
-        this.Communications = Communications;
-        this.WaterSupply = WaterSupply;
-        this.WaterServices = WaterServices;
-        this.Security = Security;
-        this.DailyCost = DailyCost;
+        this.drillingRig = drillingRig;
+        this.mudLogging = mudLogging;
+        this.downwholeTools = downwholeTools;
+        this.drillingMud = drillingMud;
+        this.solidControl = solidControl;
+        this.electricServices = electricServices;
+        this.bits = bits;
+        this.casing = casing;
+        this.accesoriesCasing = accesoriesCasing;
+        this.casingTubing = casingTubing;
+        this.cementing = cementing;
+        this.rigSupervision = rigSupervision;
+        this.communications = communications;
+        this.waterSupply = waterSupply;
+        this.waterServices = waterServices;
+        this.security = security;
+        this.dailyCost = dailyCost;
     }
 
-    // Getters et Setters
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -86,139 +87,139 @@ public class DailyCost {
     }
 
     public Double getDrillingRig() {
-        return DrillingRig;
+        return drillingRig;
     }
 
     public void setDrillingRig(Double drillingRig) {
-        this.DrillingRig = drillingRig;
+        this.drillingRig = drillingRig;
     }
 
     public Double getMudLogging() {
-        return MudLogging;
+        return mudLogging;
     }
 
     public void setMudLogging(Double mudLogging) {
-        this.MudLogging = mudLogging;
+        this.mudLogging = mudLogging;
     }
 
     public Double getDownwholeTools() {
-        return DownwholeTools;
+        return downwholeTools;
     }
 
     public void setDownwholeTools(Double downwholeTools) {
-        this.DownwholeTools = downwholeTools;
+        this.downwholeTools = downwholeTools;
     }
 
     public Double getDrillingMud() {
-        return DrillingMud;
+        return drillingMud;
     }
 
     public void setDrillingMud(Double drillingMud) {
-        this.DrillingMud = drillingMud;
+        this.drillingMud = drillingMud;
     }
 
     public Double getSolidControl() {
-        return SolidControl;
+        return solidControl;
     }
 
     public void setSolidControl(Double solidControl) {
-        this.SolidControl = solidControl;
+        this.solidControl = solidControl;
     }
 
     public Double getElectricServices() {
-        return ElectricServices;
+        return electricServices;
     }
 
     public void setElectricServices(Double electricServices) {
-        this.ElectricServices = electricServices;
+        this.electricServices = electricServices;
     }
 
     public Double getBits() {
-        return Bits;
+        return bits;
     }
 
     public void setBits(Double bits) {
-        this.Bits = bits;
+        this.bits = bits;
     }
 
     public Double getCasing() {
-        return Casing;
+        return casing;
     }
 
     public void setCasing(Double casing) {
-        this.Casing = casing;
+        this.casing = casing;
     }
 
     public Double getAccesoriesCasing() {
-        return AccesoriesCasing;
+        return accesoriesCasing;
     }
 
     public void setAccesoriesCasing(Double accesoriesCasing) {
-        this.AccesoriesCasing = accesoriesCasing;
+        this.accesoriesCasing = accesoriesCasing;
     }
 
     public Double getCasingTubing() {
-        return CasingTubing;
+        return casingTubing;
     }
 
     public void setCasingTubing(Double casingTubing) {
-        this.CasingTubing = casingTubing;
+        this.casingTubing = casingTubing;
     }
 
     public Double getCementing() {
-        return Cementing;
+        return cementing;
     }
 
     public void setCementing(Double cementing) {
-        this.Cementing = cementing;
+        this.cementing = cementing;
     }
 
     public Double getRigSupervision() {
-        return RigSupervision;
+        return rigSupervision;
     }
 
     public void setRigSupervision(Double rigSupervision) {
-        this.RigSupervision = rigSupervision;
+        this.rigSupervision = rigSupervision;
     }
 
     public Double getCommunications() {
-        return Communications;
+        return communications;
     }
 
     public void setCommunications(Double communications) {
-        this.Communications = communications;
+        this.communications = communications;
     }
 
     public Double getWaterSupply() {
-        return WaterSupply;
+        return waterSupply;
     }
 
     public void setWaterSupply(Double waterSupply) {
-        this.WaterSupply = waterSupply;
+        this.waterSupply = waterSupply;
     }
 
     public Double getWaterServices() {
-        return WaterServices;
+        return waterServices;
     }
 
     public void setWaterServices(Double waterServices) {
-        this.WaterServices = waterServices;
+        this.waterServices = waterServices;
     }
 
     public Double getSecurity() {
-        return Security;
+        return security;
     }
 
     public void setSecurity(Double security) {
-        this.Security = security;
+        this.security = security;
     }
 
     public Double getDailyCost() {
-        return DailyCost;
+        return dailyCost;
     }
 
     public void setDailyCost(Double dailyCost) {
-        this.DailyCost = dailyCost;
+        this.dailyCost = dailyCost;
     }
 
     public Report getReport() {
@@ -227,30 +228,5 @@ public class DailyCost {
 
     public void setReport(Report report) {
         this.report = report;
-    }
-
-    @Override
-    public String toString() {
-        return "DailyCost{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", DrillingRig=" + DrillingRig +
-                ", MudLogging=" + MudLogging +
-                ", DownwholeTools=" + DownwholeTools +
-                ", DrillingMud=" + DrillingMud +
-                ", SolidControl=" + SolidControl +
-                ", ElectricServices=" + ElectricServices +
-                ", Bits=" + Bits +
-                ", Casing=" + Casing +
-                ", AccesoriesCasing=" + AccesoriesCasing +
-                ", CasingTubing=" + CasingTubing +
-                ", Cementing=" + Cementing +
-                ", RigSupervision=" + RigSupervision +
-                ", Communications=" + Communications +
-                ", WaterSupply=" + WaterSupply +
-                ", WaterServices=" + WaterServices +
-                ", Security=" + Security +
-                ", DailyCost=" + DailyCost +
-                '}';
     }
 }
