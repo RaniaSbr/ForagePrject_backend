@@ -31,7 +31,8 @@ public class Report {
     @JsonManagedReference
     private List<Operation> operations = new ArrayList<>();
 
-    @OneToOne
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "daily_cost_id")
     @JsonManagedReference
     private DailyCost dailyCost;
 

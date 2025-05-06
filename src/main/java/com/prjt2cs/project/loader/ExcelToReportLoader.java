@@ -13,20 +13,21 @@ import java.time.format.DateTimeParseException;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class ExcelToReportLoader implements CommandLineRunner {
 
     private final ReportRepository reportRepository;
-    private final DailyCostLoader dailyCostLoader; // Ajouter cette déclaration
+    private final DailyCostLoader dailyCostLoader;
 
     public ExcelToReportLoader(ReportRepository reportRepository, DailyCostLoader dailyCostLoader) {
         this.reportRepository = reportRepository;
         this.dailyCostLoader = dailyCostLoader;
-
     }
 
     @Override
+    @Transactional // Ajout de l'annotation @Transactional pour garantir l'atomicité des opérations
     public void run(String... args) {
         try {
             ExcelReader excelReader = new ExcelReader();
@@ -71,27 +72,11 @@ public class ExcelToReportLoader implements CommandLineRunner {
                         }
                     }
                     report.setCost(costValue);
-                    int dailyCostSheetIndex = 1; // Feuille pour les coûts quotidiens - à ajuster
-                    System.out.println("Utilisation de la feuille à l'index " + dailyCostSheetIndex);
-
                     report.setDate(LocalDate.now());
 
-                    // First save to get an ID for the report
-                    reportRepository.save(report);
-                    System.out.println("Initial report created: " + act + ", depth=" + depth + ", cost=" + costValue);
-
-                    System.out.println("Utilisation de la feuille à l'index " + dailyCostSheetIndex
-                            + " pour les coûts quotidiens");
-
-                    try {
-                        System.out.println("Importing daily costs from sheet " + dailyCostSheetIndex);
-                        DailyCost dailyCost = dailyCostLoader.importDailyCostFromExcel(fileName, dailyCostSheetIndex,
-                                report.getId());
-                        System.out.println("Daily cost imported successfully. Total cost: " + dailyCost.getDailyCost());
-                    } catch (Exception e) {
-                        System.out.println("Error importing daily costs: " + e.getMessage());
-                        e.printStackTrace();
-                    }
+                    // NE PAS sauvegarder le rapport ici - attendez que toutes les opérations et
+                    // coûts soient configurés
+                    System.out.println("Report created: " + act + ", depth=" + depth + ", cost=" + costValue);
 
                     // Counter for successful operations
                     int operationsAdded = 0;
@@ -193,8 +178,6 @@ public class ExcelToReportLoader implements CommandLineRunner {
                                     System.out.println("  Error parsing initial depth: " + initialDepthStr
                                             + ", using default 0.0");
                                 }
-                            } else {
-                                System.out.println("  Missing initial depth, using default 0.0");
                             }
                             op.setInitialDepth(initialDepth);
 
@@ -206,18 +189,13 @@ public class ExcelToReportLoader implements CommandLineRunner {
                                     System.out.println("  Error parsing final depth: " + finalDepthStr + ", using "
                                             + initialDepth);
                                 }
-                            } else {
-                                System.out.println("  Missing final depth, using initial depth: " + initialDepth);
                             }
                             op.setFinalDepth(finalDepth);
 
                             op.setRate(rateStr);
-
                             op.setDate(LocalDate.now());
 
-                            // Add operation to report
-                            op.setReport(report);
-
+                            // Ajouter l'opération au rapport
                             report.addOperation(op);
                             operationsAdded++;
                             System.out.println("Successfully added operation from row " + row);
@@ -229,9 +207,31 @@ public class ExcelToReportLoader implements CommandLineRunner {
                         }
                     }
 
-                    // Final save to persist operations
-                    reportRepository.save(report);
-                    System.out.println("\nReport updated with " + operationsAdded + " operations");
+                    // IMPORTANT: Sauvegarder d'abord le rapport pour lui donner un ID
+                    Report savedReport = reportRepository.save(report);
+                    System.out.println(
+                            "\nReport saved with " + operationsAdded + " operations. ID: " + savedReport.getId());
+
+                    // Maintenant que le rapport a un ID, importer les coûts quotidiens
+                    int dailyCostSheetIndex = 1; // Feuille pour les coûts quotidiens
+                    System.out.println("Utilisation de la feuille à l'index " + dailyCostSheetIndex
+                            + " pour les coûts quotidiens");
+
+                    try {
+                        System.out.println("Importing daily costs from sheet " + dailyCostSheetIndex);
+                        DailyCost dailyCost = dailyCostLoader.importDailyCostFromExcel(fileName, dailyCostSheetIndex,
+                                savedReport.getId());
+                        System.out.println("Daily cost imported successfully. Total cost: " + dailyCost.getDailyCost());
+
+                        // IMPORTANT: S'assurer que la relation bidirectionnelle est établie et
+                        // persistée
+                        savedReport.setDailyCost(dailyCost);
+                        reportRepository.save(savedReport);
+                        System.out.println("Report updated with daily cost reference. ID: " + savedReport.getId());
+                    } catch (Exception e) {
+                        System.out.println("Error importing daily costs: " + e.getMessage());
+                        e.printStackTrace();
+                    }
 
                 } catch (Exception e) {
                     System.out.println("Error processing report: " + e.getMessage());

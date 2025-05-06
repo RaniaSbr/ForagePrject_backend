@@ -7,6 +7,7 @@ import com.prjt2cs.project.repository.ReportRepository;
 import com.prjt2cs.project.service.MonoReader;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -25,6 +26,7 @@ public class DailyCostLoader {
         this.reportRepository = reportRepository;
     }
 
+    @Transactional
     public DailyCost importDailyCostFromExcel(String fileName, int sheetIndex, Long reportId) {
         System.out.println("Attempting to read daily costs from file: " + fileName + ", sheet: " + sheetIndex);
 
@@ -39,16 +41,10 @@ public class DailyCostLoader {
         dailyCost.setName("Daily Cost for " + report.getDate());
 
         String col = "G";
-        // Use readCalculatedCellAsDouble instead of readDoubleValue
+        // Read all cost values
         dailyCost.setDrillingRig(monoReader.readCalculatedCellAsDouble(fileName, col, 12, sheetIndex));
-        System.out.println("DrillingRig: " + dailyCost.getDrillingRig());
-
         dailyCost.setMudLogging(monoReader.readCalculatedCellAsDouble(fileName, col, 17, sheetIndex));
-        System.out.println("MudLogging: " + dailyCost.getMudLogging());
-
         dailyCost.setDownwholeTools(monoReader.readCalculatedCellAsDouble(fileName, col, 21, sheetIndex));
-        System.out.println("DownwholeTools: " + dailyCost.getDownwholeTools());
-
         dailyCost.setDrillingMud(monoReader.readCalculatedCellAsDouble(fileName, col, 26, sheetIndex));
         dailyCost.setSolidControl(monoReader.readCalculatedCellAsDouble(fileName, col, 31, sheetIndex));
         dailyCost.setElectricServices(monoReader.readCalculatedCellAsDouble(fileName, col, 37, sheetIndex));
@@ -62,19 +58,22 @@ public class DailyCostLoader {
         dailyCost.setWaterSupply(monoReader.readCalculatedCellAsDouble(fileName, col, 73, sheetIndex));
         dailyCost.setWaterServices(monoReader.readCalculatedCellAsDouble(fileName, col, 79, sheetIndex));
         dailyCost.setSecurity(monoReader.readCalculatedCellAsDouble(fileName, col, 83, sheetIndex));
-
-        // Read the total daily cost from G85 with formula evaluation
         dailyCost.setDailyCost(monoReader.readCalculatedCellAsDouble(fileName, col, 85, sheetIndex));
-        System.out.println("Total Daily Cost from cell G85: " + dailyCost.getDailyCost());
 
-        // Set bidirectional relationship
+        System.out.println("Daily cost values read successfully. Total: " + dailyCost.getDailyCost());
+
+        // The key part: Properly establish the bi-directional relationship BEFORE
+        // saving
         dailyCost.setReport(report);
         report.setDailyCost(dailyCost);
 
-        // Save and return the dailyCost
+        // First save the dailyCost
         DailyCost savedDailyCost = dailyCostRepository.save(dailyCost);
-        System.out.println("Daily cost saved with ID: " + savedDailyCost.getId() +
-                ", Total cost: " + savedDailyCost.getDailyCost());
+        System.out.println("Daily cost saved with ID: " + savedDailyCost.getId());
+
+        // Then update and save the report with the relationship established
+        Report updatedReport = reportRepository.save(report);
+        System.out.println("Report updated with daily cost relationship. Report ID: " + updatedReport.getId());
 
         return savedDailyCost;
     }
