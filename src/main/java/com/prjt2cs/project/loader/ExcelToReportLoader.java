@@ -10,7 +10,10 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
 
+import java.util.List;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,14 +47,54 @@ public class ExcelToReportLoader implements CommandLineRunner {
             int rowIndex = 10;
 
             String act = excelReader.readCellRangeConcatenated(fileName, startColumn, endColumn, rowIndex, sheetIndex);
-            String dep = excelReader.readCellRangeConcatenated(fileName, "BX", "CB", 10, sheetIndex);
-            String cost = excelReader.readCellRangeConcatenated(fileName, "CJ", "CO", 58, sheetIndex);
-
+            String dep = excelReader.readCellRangeConcatenated(fileName, "U", "Z", 6, sheetIndex);
+            String plannedOpe = excelReader.readCellRangeConcatenated(fileName, "O", "BC", 58, sheetIndex);
+            Double drillingHours = Double
+                    .parseDouble(excelReader.readCellRangeConcatenated(fileName, "BF", "BH", 6, sheetIndex));
+            Double drillingProgress = Double
+                    .parseDouble(excelReader.readCellRangeConcatenated(fileName, "AW", "BA", 6, sheetIndex));
+            Double tvd = Double.parseDouble(excelReader.readCellRangeConcatenated(fileName, "AF", "AK", 6, sheetIndex));
+            Double day = Double
+                    .parseDouble(excelReader.readCellRangeConcatenated(fileName, "BQ", "BY", 62, sheetIndex));
             if (act != null) {
                 Report report = new Report();
-                try {
-                    report.setActivity(act);
 
+                // Utiliser ArrayList au lieu de Arrays.asList() pour permettre l'ajout
+                // d'éléments
+                List<String> remarksList = new ArrayList<>();
+
+                for (int row = 46; row <= 56; row++) {
+                    try {
+                        // Read all data first with explicit sheet index
+                        String rowRemark = excelReader.readCellRangeConcatenated(fileName, "B", "BG", row, sheetIndex);
+
+                        // Print debug info for this row
+                        System.out.println("\nProcessing row " + row + ":");
+                        System.out.println("  rowRemark: " + rowRemark);
+
+                        // Skip entirely empty rows (no start time)
+                        if (rowRemark == null || rowRemark.trim().isEmpty()) {
+                            System.out.println("Skipping row " + row + " - missing remark");
+                            continue; // Passer à la ligne suivante si rowRemark est vide
+                        }
+
+                        remarksList.add(rowRemark.trim());
+                        System.out.println("Successfully added remark from row " + row);
+
+                    } catch (Exception e) {
+                        System.out.println("Unexpected error processing row " + row + ": " + e.getMessage());
+                        e.printStackTrace();
+                        // Continue with next row even if there's an error with this one
+                    }
+                }
+
+                // Définir les remarques après avoir ajouté toutes les entrées valides
+                report.setRemarks(remarksList);
+
+                ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+                ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                try {
                     // Use default values if data is missing
                     double depth = 0.0;
                     if (dep != null && !dep.trim().isEmpty()) {
@@ -62,21 +105,49 @@ public class ExcelToReportLoader implements CommandLineRunner {
                         }
                     }
                     report.setDepth(depth);
+                    report.setDrillingProgress(drillingProgress);
+                    report.setDrillingHours(drillingHours);
+                    report.setTvd(tvd);
+                    report.setDay(day);
 
-                    double costValue = 0.0;
-                    if (cost != null && !cost.trim().isEmpty()) {
-                        try {
-                            costValue = Double.parseDouble(cost.trim());
-                        } catch (NumberFormatException e) {
-                            System.out.println("Error parsing cost: " + cost + ", using default 0.0");
+                    report.setPlannedOperation(plannedOpe != null ? plannedOpe.trim() : "Planned Operation");
+
+                    // Gestion améliorée du parsing de la date
+                    String dateString = excelReader.readCellRangeConcatenated(fileName, "DG", "DM", 4, 0);
+                    LocalDate parsedDate = null;
+
+                    if (dateString != null && !dateString.trim().isEmpty()) {
+                        dateString = dateString.trim();
+                        // Essayer différents formats de date courants
+                        List<String> dateFormats = Arrays.asList(
+                                "yyyy-MM-dd", "dd/MM/yyyy", "MM/dd/yyyy", "dd-MM-yyyy", "yyyy/MM/dd");
+
+                        for (String format : dateFormats) {
+                            try {
+                                DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+                                parsedDate = LocalDate.parse(dateString, formatter);
+                                System.out.println("Date successfully parsed with format: " + format);
+                                break; // Sortir de la boucle si le parsing réussit
+                            } catch (DateTimeParseException e) {
+                                // Essayer le prochain format
+                            }
                         }
+
+                        if (parsedDate == null) {
+                            System.out.println("Could not parse date string: " + dateString + " - using current date");
+                            parsedDate = LocalDate.now();
+                        }
+                    } else {
+                        System.out.println("Date string is empty - using current date");
+                        parsedDate = LocalDate.now();
                     }
-                    report.setCost(costValue);
-                    report.setDate(LocalDate.now());
+
+                    report.setDate(parsedDate);
 
                     // NE PAS sauvegarder le rapport ici - attendez que toutes les opérations et
                     // coûts soient configurés
-                    System.out.println("Report created: " + act + ", depth=" + depth + ", cost=" + costValue);
+                    System.out.println("Report created: " + act + ", depth=" + depth + ", planned=" + plannedOpe
+                            + ", date=" + parsedDate);
 
                     // Counter for successful operations
                     int operationsAdded = 0;
@@ -192,8 +263,11 @@ public class ExcelToReportLoader implements CommandLineRunner {
                             }
                             op.setFinalDepth(finalDepth);
 
-                            op.setRate(rateStr);
-                            op.setDate(LocalDate.now());
+                            // Vérifier si rateStr est null avant de l'assigner
+                            op.setRate(rateStr != null ? rateStr : "");
+
+                            // Utiliser la date du rapport plutôt que la date actuelle
+                            op.setDate(parsedDate);
 
                             // Ajouter l'opération au rapport
                             report.addOperation(op);
@@ -221,13 +295,20 @@ public class ExcelToReportLoader implements CommandLineRunner {
                         System.out.println("Importing daily costs from sheet " + dailyCostSheetIndex);
                         DailyCost dailyCost = dailyCostLoader.importDailyCostFromExcel(fileName, dailyCostSheetIndex,
                                 savedReport.getId());
-                        System.out.println("Daily cost imported successfully. Total cost: " + dailyCost.getDailyCost());
 
-                        // IMPORTANT: S'assurer que la relation bidirectionnelle est établie et
-                        // persistée
-                        savedReport.setDailyCost(dailyCost);
-                        reportRepository.save(savedReport);
-                        System.out.println("Report updated with daily cost reference. ID: " + savedReport.getId());
+                        if (dailyCost != null) {
+                            System.out.println(
+                                    "Daily cost imported successfully. Total cost: " + dailyCost.getDailyCost());
+
+                            // IMPORTANT: S'assurer que la relation bidirectionnelle est établie et
+                            // persistée
+                            savedReport.setDailyCost(dailyCost);
+                            reportRepository.save(savedReport);
+                            System.out.println("Report updated with daily cost reference. ID: " + savedReport.getId());
+                        } else {
+                            System.out
+                                    .println("Warning: Daily cost is null - report saved without daily cost reference");
+                        }
                     } catch (Exception e) {
                         System.out.println("Error importing daily costs: " + e.getMessage());
                         e.printStackTrace();
