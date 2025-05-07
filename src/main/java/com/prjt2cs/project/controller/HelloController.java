@@ -7,12 +7,17 @@ import com.prjt2cs.project.repository.DailyCostRepository;
 import com.prjt2cs.project.repository.OperationRepository;
 import com.prjt2cs.project.repository.ReportRepository;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -82,4 +87,42 @@ public class HelloController {
         }
         return null; // Returns null if the report doesn't exist or has no daily cost
     }
-}
+
+        // Endpoint pour déclarer/modifier les anomalies **************************************************************
+        @PatchMapping("/reports/{id}/anomalies")
+        public ResponseEntity<Report> declareAnomalies(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> payload) {
+            
+            String anomaliesDescription = payload.get("anomalies");
+        
+            Report report = reportRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Rapport non trouvé"));
+        
+            report.setAnomalies(anomaliesDescription);
+            reportRepository.save(report);
+        
+            return ResponseEntity.ok(report);
+        }
+
+
+    @PatchMapping("/reports/{id}/review")
+    public ResponseEntity<Report> submitReview(
+        @PathVariable Long id,
+        @RequestBody Map<String, String> payload) {
+            
+        String expertAnalysis = payload.get("expertAnalysis");
+        String expertRecommendations = payload.get("expertRecommendations");
+
+        Report report = reportRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Rapport introuvable"));
+
+        report.setAnalysis(expertAnalysis);
+        report.setRecommendations(expertRecommendations);
+        reportRepository.save(report);
+
+        return ResponseEntity.ok(report);
+    }
+
+    //***************************************************** */
+}  

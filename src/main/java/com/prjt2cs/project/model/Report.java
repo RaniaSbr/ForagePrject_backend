@@ -26,7 +26,17 @@ public class Report {
 
     @Column(name = "REPORT_DATE")
     private LocalDate date;
+//*************************************************************************************** */
+    @Column(name = "ANOMALIES", length = 2000) 
+    private String anomalies; 
 
+    @Column(name = "EXPERT_ANALYSIS", length = 2000) 
+    private String expertAnalysis; 
+
+    @Column(name = "EXPERT_RECOMMENDATIONS", length = 2000) 
+    private String expertRecommendations; 
+
+//********************************************************************** */
     @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<Operation> operations = new ArrayList<>();
@@ -99,5 +109,29 @@ public class Report {
         if (dailyCost != null) {
             dailyCost.setReport(this);
         }
+    }
+//*************************************************************************** */
+    public String getAnomalies() {
+        return anomalies;
+    }
+
+    public void setAnomalies(String anomalie) {
+        this.anomalies = anomalie;
+    }
+
+    public String getAnalysis() {
+        return expertAnalysis;
+    }
+
+    public void setAnalysis(String expertAnalysis) {
+        this.expertAnalysis = expertAnalysis;
+    } 
+    
+    public String getRecommendations() {
+        return expertRecommendations;
+    }
+
+    public void setRecommendations(String expertRecommendations) {
+        this.expertRecommendations = expertRecommendations;
     }
 }
