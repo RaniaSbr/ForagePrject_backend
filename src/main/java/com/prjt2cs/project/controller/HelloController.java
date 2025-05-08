@@ -7,7 +7,6 @@ import com.prjt2cs.project.repository.DailyCostRepository;
 import com.prjt2cs.project.repository.OperationRepository;
 import com.prjt2cs.project.repository.ReportRepository;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
