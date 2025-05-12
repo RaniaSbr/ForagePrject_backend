@@ -24,9 +24,10 @@ public class ForageApplication {
 		int rowIndex = 6;
 
 		// Appeler la méthode pour lire les cellules concaténées
-		String result = excelReader.readCellRangeConcatenated(fileName, startColumn, endColumn, rowIndex);
+		// String result = excelReader.readCellRangeConcatenated(fileName, startColumn,
+		// endColumn, rowIndex);
 
 		// Afficher les valeurs concaténées
-		System.out.println("Valeurs concaténées : " + result);
+		// System.out.println("Valeurs concaténées : " + result);
 	}
 }
