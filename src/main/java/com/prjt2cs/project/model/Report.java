@@ -15,18 +15,17 @@ public class Report {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "ACTIVITY")
-    private String activity;
+    @Column(name = "REMARKS")
+    private List<String> remarks = new ArrayList<>();
 
     @Column(name = "DEPTH")
     private Double depth;
 
-    @Column(name = "COST")
-    private Double cost;
+    @Column(name = "PLANNED_OPE")
+    private String plannedope;
 
     @Column(name = "REPORT_DATE")
     private LocalDate date;
-//*************************************************************************************** */
     @Column(name = "ANOMALIES", length = 2000) 
     private String anomalies; 
 
@@ -36,7 +35,20 @@ public class Report {
     @Column(name = "EXPERT_RECOMMENDATIONS", length = 2000) 
     private String expertRecommendations; 
 
-//********************************************************************** */
+
+    @Column(name = "TVD")
+    private Double tvd;
+
+    @Column(name = "DAILY_PROGRESS")
+    private Double drillingProgress;
+
+    @Column(name = "DRILLING_HOURS")
+    private Double drillingHours;
+
+    @Column(name = "ACTUAL_DAY")
+    private Double actualDay;
+
+
     @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<Operation> operations = new ArrayList<>();
@@ -55,12 +67,12 @@ public class Report {
         this.id = id;
     }
 
-    public String getActivity() {
-        return activity;
+    public List<String> getRemarks() {
+        return remarks;
     }
 
-    public void setActivity(String activity) {
-        this.activity = activity;
+    public void setRemarks(List<String> remarks) {
+        this.remarks = remarks;
     }
 
     public Double getDepth() {
@@ -71,12 +83,20 @@ public class Report {
         this.depth = depth;
     }
 
-    public Double getCost() {
-        return cost;
+    public Double getDay() {
+        return actualDay;
     }
 
-    public void setCost(Double cost) {
-        this.cost = cost;
+    public void setDay(Double actualDay) {
+        this.actualDay = actualDay;
+    }
+
+    public String getPlannedOperation() {
+        return plannedope;
+    }
+
+    public void setPlannedOperation(String plannedope) {
+        this.plannedope = plannedope;
     }
 
     public LocalDate getDate() {
@@ -110,7 +130,7 @@ public class Report {
             dailyCost.setReport(this);
         }
     }
-//*************************************************************************** */
+
     public String getAnomalies() {
         return anomalies;
     }
@@ -134,4 +154,30 @@ public class Report {
     public void setRecommendations(String expertRecommendations) {
         this.expertRecommendations = expertRecommendations;
     }
+
+    public Double getTvd() {
+        return tvd;
+    }
+
+    public void setTvd(Double tvd) {
+        this.tvd = tvd;
+    }
+
+    public Double getDrillingProgress() {
+        return drillingProgress;
+    }
+
+    public void setDrillingProgress(Double drillingProgress) {
+        this.drillingProgress = drillingProgress;
+    }
+
+    public Double getDrillingHours() {
+        return drillingHours;
+    }
+
+    public void setDrillingHours(Double drillingHours) {
+        this.drillingHours = drillingHours;
+    }
+
+
 }
