@@ -26,6 +26,15 @@ public class Report {
 
     @Column(name = "REPORT_DATE")
     private LocalDate date;
+    @Column(name = "ANOMALIES", length = 2000) 
+    private String anomalies; 
+
+    @Column(name = "EXPERT_ANALYSIS", length = 2000) 
+    private String expertAnalysis; 
+
+    @Column(name = "EXPERT_RECOMMENDATIONS", length = 2000) 
+    private String expertRecommendations; 
+
 
     @Column(name = "TVD")
     private Double tvd;
@@ -38,6 +47,7 @@ public class Report {
 
     @Column(name = "ACTUAL_DAY")
     private Double actualDay;
+
 
     @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
@@ -121,6 +131,30 @@ public class Report {
         }
     }
 
+    public String getAnomalies() {
+        return anomalies;
+    }
+
+    public void setAnomalies(String anomalie) {
+        this.anomalies = anomalie;
+    }
+
+    public String getAnalysis() {
+        return expertAnalysis;
+    }
+
+    public void setAnalysis(String expertAnalysis) {
+        this.expertAnalysis = expertAnalysis;
+    } 
+    
+    public String getRecommendations() {
+        return expertRecommendations;
+    }
+
+    public void setRecommendations(String expertRecommendations) {
+        this.expertRecommendations = expertRecommendations;
+    }
+
     public Double getTvd() {
         return tvd;
     }
@@ -144,5 +178,6 @@ public class Report {
     public void setDrillingHours(Double drillingHours) {
         this.drillingHours = drillingHours;
     }
+
 
 }
