@@ -20,14 +20,25 @@ public class UserDetailsImpl implements UserDetails {
     @JsonIgnore
     private String password;
     
+    // Ajout des nouveaux attributs
+    private String nom;
+    private String prenom;
+    private String telephone;
+    private String wilaya;
+    
     private Collection<? extends GrantedAuthority> authorities;
 
     public UserDetailsImpl(Long id, String username, String email, String password,
+            String nom, String prenom, String telephone, String wilaya,
             Collection<? extends GrantedAuthority> authorities) {
         this.id = id;
         this.username = username;
         this.email = email;
         this.password = password;
+        this.nom = nom;
+        this.prenom = prenom;
+        this.telephone = telephone;
+        this.wilaya = wilaya;
         this.authorities = authorities;
     }
 
@@ -41,6 +52,10 @@ public class UserDetailsImpl implements UserDetails {
                 user.getUsername(),
                 user.getEmail(),
                 user.getPassword(),
+                user.getNom(),
+                user.getPrenom(),
+                user.getTelephone(),
+                user.getWilaya(),
                 authorities);
     }
 
@@ -65,6 +80,23 @@ public class UserDetailsImpl implements UserDetails {
     @Override
     public String getUsername() {
         return username;
+    }
+    
+    // Getters pour les nouveaux attributs
+    public String getNom() {
+        return nom;
+    }
+    
+    public String getPrenom() {
+        return prenom;
+    }
+    
+    public String getTelephone() {
+        return telephone;
+    }
+    
+    public String getWilaya() {
+        return wilaya;
     }
 
     @Override

@@ -32,6 +32,19 @@ public class User {
     @Size(max = 120)
     private String password;
 
+    // Nouveaux attributs
+    @Size(max = 50)
+    private String nom;
+    
+    @Size(max = 50)
+    private String prenom;
+    
+    @Size(max = 15)
+    private String telephone;
+    
+    @Size(max = 30)
+    private String wilaya;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "user_roles", 
         joinColumns = @JoinColumn(name = "user_id"),
@@ -47,7 +60,18 @@ public class User {
         this.password = password;
     }
 
-    // Getters and Setters
+    // Constructeur mis à jour avec les nouveaux attributs
+    public User(String username, String email, String password, String nom, String prenom, String telephone, String wilaya) {
+        this.username = username;
+        this.email = email;
+        this.password = password;
+        this.nom = nom;
+        this.prenom = prenom;
+        this.telephone = telephone;
+        this.wilaya = wilaya;
+    }
+
+    // Getters and Setters existants
     public Long getId() {
         return id;
     }
@@ -86,5 +110,38 @@ public class User {
 
     public void setRoles(Set<Role> roles) {
         this.roles = roles;
+    }
+
+    // Nouveaux getters et setters
+    public String getNom() {
+        return nom;
+    }
+
+    public void setNom(String nom) {
+        this.nom = nom;
+    }
+
+    public String getPrenom() {
+        return prenom;
+    }
+
+    public void setPrenom(String prenom) {
+        this.prenom = prenom;
+    }
+
+    public String getTelephone() {
+        return telephone;
+    }
+
+    public void setTelephone(String telephone) {
+        this.telephone = telephone;
+    }
+
+    public String getWilaya() {
+        return wilaya;
+    }
+
+    public void setWilaya(String wilaya) {
+        this.wilaya = wilaya;
     }
 }

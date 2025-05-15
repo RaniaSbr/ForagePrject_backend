@@ -51,10 +51,15 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Error: Email is already in use!");
         }
 
+        // Création utilisateur avec nouveaux attributs
         User user = new User(
             signUpRequest.getUsername(),
             signUpRequest.getEmail(),
-            passwordEncoder.encode(signUpRequest.getPassword())
+            passwordEncoder.encode(signUpRequest.getPassword()),
+            signUpRequest.getNom(),
+            signUpRequest.getPrenom(),
+            signUpRequest.getTelephone(),
+            signUpRequest.getWilaya()
         );
 
         Set<Role> roles = new HashSet<>();
@@ -85,7 +90,11 @@ public class AuthController {
             userDetails.getEmail(),
             userDetails.getAuthorities().stream()
                 .map(item -> item.getAuthority())
-                .toList()));
+                .toList(),
+            userDetails.getNom(),
+            userDetails.getPrenom(),
+            userDetails.getTelephone(),
+            userDetails.getWilaya()));
     }
 
     @PostMapping("/signin")
@@ -109,7 +118,11 @@ public class AuthController {
                 userDetails.getEmail(),
                 userDetails.getAuthorities().stream()
                     .map(item -> item.getAuthority())
-                    .toList()));
+                    .toList(),
+                userDetails.getNom(),
+                userDetails.getPrenom(),
+                userDetails.getTelephone(),
+                userDetails.getWilaya()));
     
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Authentication failed: " + e.getMessage());
