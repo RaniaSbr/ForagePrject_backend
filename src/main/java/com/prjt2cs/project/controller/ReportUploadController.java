@@ -98,6 +98,10 @@ public class ReportUploadController {
             // Read PLANNED OPERATION
             String plannedOpe1 = excelReader.readCellRangeConcatenated(
                     new ByteArrayInputStream(fileBytes), "O", "BC", 59, 0);
+
+            String phase = excelReader.readCellRangeConcatenated(
+                    new ByteArrayInputStream(fileBytes), "M", "P", 10, 0);
+            report.setPhase(phase);
             String plannedOpe2 = excelReader.readCellRangeConcatenated(
                     new ByteArrayInputStream(fileBytes), "O", "BC", 58, 0);
             String plannedOpe = plannedOpe1 + " " + plannedOpe2;
@@ -397,23 +401,43 @@ public class ReportUploadController {
         System.out.println("Trying to read DailyCost from sheet " + sheetIndex + ", column " + column);
 
         // Read values for each cost category from the Excel sheet
+        // dailyCost.setDrillingRig(evaluateCell(fileBytes, column, 12, sheetIndex));
+        // dailyCost.setMudLogging(evaluateCell(fileBytes, column, 17, sheetIndex));
+        // dailyCost.setDownwholeTools(evaluateCell(fileBytes, column, 21, sheetIndex));
+        // dailyCost.setDrillingMud(evaluateCell(fileBytes, column, 26, sheetIndex));
+        // dailyCost.setSolidControl(evaluateCell(fileBytes, column, 31, sheetIndex));
+        // dailyCost.setElectricServices(evaluateCell(fileBytes, column, 37,
+        // sheetIndex));
+        // dailyCost.setBits(evaluateCell(fileBytes, column, 40, sheetIndex));
+        // dailyCost.setCasing(evaluateCell(fileBytes, column, 44, sheetIndex));
+        // dailyCost.setAccesoriesCasing(evaluateCell(fileBytes, column, 50,
+        // sheetIndex));
+        // dailyCost.setCasingTubing(evaluateCell(fileBytes, column, 54, sheetIndex));
+        // dailyCost.setCementing(evaluateCell(fileBytes, column, 59, sheetIndex));
+        // dailyCost.setRigSupervision(evaluateCell(fileBytes, column, 65, sheetIndex));
+        // dailyCost.setCommunications(evaluateCell(fileBytes, column, 72, sheetIndex));
+        // dailyCost.setWaterSupply(evaluateCell(fileBytes, column, 73, sheetIndex));
+        // dailyCost.setWaterServices(evaluateCell(fileBytes, column, 79, sheetIndex));
+        // dailyCost.setSecurity(evaluateCell(fileBytes, column, 83, sheetIndex));
+
+        // Read values for each cost category from the Excel sheet
         dailyCost.setDrillingRig(evaluateCell(fileBytes, column, 12, sheetIndex));
         dailyCost.setMudLogging(evaluateCell(fileBytes, column, 17, sheetIndex));
         dailyCost.setDownwholeTools(evaluateCell(fileBytes, column, 21, sheetIndex));
         dailyCost.setDrillingMud(evaluateCell(fileBytes, column, 26, sheetIndex));
         dailyCost.setSolidControl(evaluateCell(fileBytes, column, 31, sheetIndex));
         dailyCost.setElectricServices(evaluateCell(fileBytes, column, 37, sheetIndex));
-        dailyCost.setBits(evaluateCell(fileBytes, column, 40, sheetIndex));
-        dailyCost.setCasing(evaluateCell(fileBytes, column, 44, sheetIndex));
-        dailyCost.setAccesoriesCasing(evaluateCell(fileBytes, column, 50, sheetIndex));
-        dailyCost.setCasingTubing(evaluateCell(fileBytes, column, 54, sheetIndex));
-        dailyCost.setCementing(evaluateCell(fileBytes, column, 59, sheetIndex));
-        dailyCost.setRigSupervision(evaluateCell(fileBytes, column, 65, sheetIndex));
-        dailyCost.setCommunications(evaluateCell(fileBytes, column, 72, sheetIndex));
-        dailyCost.setWaterSupply(evaluateCell(fileBytes, column, 73, sheetIndex));
-        dailyCost.setWaterServices(evaluateCell(fileBytes, column, 79, sheetIndex));
-        dailyCost.setSecurity(evaluateCell(fileBytes, column, 83, sheetIndex));
-
+        dailyCost.setBits(evaluateCell(fileBytes, column, 43, sheetIndex));
+        dailyCost.setCasing(evaluateCell(fileBytes, column, 46, sheetIndex));
+        dailyCost.setAccesoriesCasing(evaluateCell(fileBytes, column, 51, sheetIndex));
+        dailyCost.setCasingTubing(evaluateCell(fileBytes, column, 55, sheetIndex));
+        dailyCost.setCementing(evaluateCell(fileBytes, column, 63, sheetIndex));
+        dailyCost.setRigSupervision(evaluateCell(fileBytes, column, 68, sheetIndex));
+        dailyCost.setCommunications(evaluateCell(fileBytes, column, 73, sheetIndex));
+        dailyCost.setWaterSupply(evaluateCell(fileBytes, column, 77, sheetIndex));
+        dailyCost.setWaterServices(evaluateCell(fileBytes, column, 80, sheetIndex));
+        dailyCost.setSecurity(evaluateCell(fileBytes, column, 84, sheetIndex));
+        dailyCost.setDailyCost(evaluateCell(fileBytes, column, 86, sheetIndex));
         // Check if at least one value was set properly
         boolean hasAtLeastOneValue = dailyCost.getDrillingRig() > 0 || dailyCost.getMudLogging() > 0 ||
                 dailyCost.getDownwholeTools() > 0 || dailyCost.getDrillingMud() > 0 ||

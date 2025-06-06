@@ -18,6 +18,9 @@ public class Report {
     @Column(name = "REMARKS")
     private List<String> remarks = new ArrayList<>();
 
+    @Column(name = "PHASE")
+    private String phase;
+
     @Column(name = "DEPTH")
     private Double depth;
 
@@ -63,6 +66,14 @@ public class Report {
 
     public void setRemarks(List<String> remarks) {
         this.remarks = remarks;
+    }
+
+    public void setPhase(String phase) {
+        this.phase = phase;
+    }
+
+    public String getPhase() {
+        return phase;
     }
 
     public Double getDepth() {
