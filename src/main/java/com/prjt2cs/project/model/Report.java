@@ -42,6 +42,11 @@ public class Report {
     @Column(name = "ACTUAL_DAY")
     private Double actualDay;
 
+    // Champs pour le fichier Excel
+    @Lob
+    @Column(name = "EXCEL_FILE")
+    private byte[] excelFile;
+
     @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<Operation> operations = new ArrayList<>();
@@ -51,7 +56,7 @@ public class Report {
     @JsonManagedReference
     private DailyCost dailyCost;
 
-    // Getters and Setters
+    // Getters et Setters existants
     public Long getId() {
         return id;
     }
@@ -156,4 +161,22 @@ public class Report {
         this.drillingHours = drillingHours;
     }
 
+    // Nouveaux getters et setters pour le fichier Excel
+    public byte[] getExcelFile() {
+        return excelFile;
+    }
+
+    public void setExcelFile(byte[] excelFile) {
+        this.excelFile = excelFile;
+    }
+
+    // Méthodes utilitaires pour gérer le fichier Excel
+    public boolean hasExcelFile() {
+        return excelFile != null && excelFile.length > 0;
+    }
+
+    public void clearExcelFile() {
+        this.excelFile = null;
+
+    }
 }

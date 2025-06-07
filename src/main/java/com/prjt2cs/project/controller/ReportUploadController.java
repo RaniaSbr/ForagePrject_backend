@@ -51,10 +51,13 @@ public class ReportUploadController {
     public ResponseEntity<String> createReportFromExcel(@RequestParam("file") MultipartFile file) {
         try {
             // Copy file content to memory
+
+            // Enregistrer le fichier Excel dans le modèle Report
             byte[] fileBytes = file.getBytes();
 
             // Create a new report
             Report report = new Report();
+            report.setExcelFile(fileBytes);
 
             // Set the date to today
             report.setDate(LocalDate.now());
