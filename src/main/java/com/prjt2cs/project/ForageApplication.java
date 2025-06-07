@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Bean;
 @SpringBootApplication
 public class ForageApplication {
 
+
     public static void main(String[] args) {
         SpringApplication.run(ForageApplication.class, args);
     }
@@ -53,4 +54,5 @@ public class ForageApplication {
             }
         };
     }
+
 }
