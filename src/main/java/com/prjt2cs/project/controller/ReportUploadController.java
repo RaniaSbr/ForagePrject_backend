@@ -58,17 +58,7 @@ public class ReportUploadController {
             // Create a new report
             Report report = new Report();
             report.setExcelFile(fileBytes);
-
-            String dateStr = excelReader.readCellRangeConcatenated(
-                    new ByteArrayInputStream(fileBytes), "DD", "DO", 3, 0);
-
-            // Create a formatter that can handle the prefix
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("'Date:' MM/dd/yyyy");
-
-            // Conversion en LocalDate
-            LocalDate date = LocalDate.parse(dateStr.trim(), formatter);
-            // Affecte à ton report
-            report.setDate(date);
+            report.setDate(LocalDate.now());
             // Read drilling hours (as in ExcelToReportLoader)
             String drillHoursStr = excelReader.readCellRangeConcatenated(
                     new ByteArrayInputStream(fileBytes), "BF", "BH", 6, 0);
