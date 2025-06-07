@@ -59,9 +59,16 @@ public class ReportUploadController {
             Report report = new Report();
             report.setExcelFile(fileBytes);
 
-            // Set the date to today
-            report.setDate(LocalDate.now());
+            String dateStr = excelReader.readCellRangeConcatenated(
+                    new ByteArrayInputStream(fileBytes), "DD", "DO", 3, 0);
 
+            // Create a formatter that can handle the prefix
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("'Date:' MM/dd/yyyy");
+
+            // Conversion en LocalDate
+            LocalDate date = LocalDate.parse(dateStr.trim(), formatter);
+            // Affecte à ton report
+            report.setDate(date);
             // Read drilling hours (as in ExcelToReportLoader)
             String drillHoursStr = excelReader.readCellRangeConcatenated(
                     new ByteArrayInputStream(fileBytes), "BF", "BH", 6, 0);
@@ -463,7 +470,7 @@ public class ReportUploadController {
     /**
      * Evaluates a cell's value, handling formulas properly
      */
-    private double evaluateCell(byte[] fileBytes, String column, int rowIndex, int sheetIndex) {
+    public double evaluateCell(byte[] fileBytes, String column, int rowIndex, int sheetIndex) {
         try (InputStream is = new ByteArrayInputStream(fileBytes);
                 Workbook workbook = new XSSFWorkbook(is)) {
 

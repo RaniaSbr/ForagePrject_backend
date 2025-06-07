@@ -8,7 +8,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToOne;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 
 @Entity
@@ -20,7 +19,7 @@ public class DailyCost {
     private Long id;
 
     private String name;
-    private Double drillingRig; // Changed to camelCase
+    private Double drilling; // Changed to camelCase
     private Double mudLogging; // Changed to camelCase
     private Double downwholeTools; // Changed to camelCase
     private Double drillingMud; // Changed to camelCase
@@ -52,7 +51,7 @@ public class DailyCost {
             Double rigSupervision, Double communications, Double waterSupply,
             Double waterServices, Double security, Double dailyCost) {
         this.name = name;
-        this.drillingRig = drillingRig;
+        this.drilling = drillingRig;
         this.mudLogging = mudLogging;
         this.downwholeTools = downwholeTools;
         this.drillingMud = drillingMud;
@@ -89,11 +88,11 @@ public class DailyCost {
     }
 
     public Double getDrillingRig() {
-        return drillingRig;
+        return drilling;
     }
 
     public void setDrillingRig(Double drillingRig) {
-        this.drillingRig = drillingRig;
+        this.drilling = drillingRig;
     }
 
     public Double getMudLogging() {
