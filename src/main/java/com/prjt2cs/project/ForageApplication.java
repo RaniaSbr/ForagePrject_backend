@@ -46,7 +46,7 @@ public class ForageApplication {
             int rowIndex = 6;
 
             try {
-                String result = excelReader.readCellRangeConcatenated(fileName, startColumn, endColumn, rowIndex);
+                String result = excelReader.readCellRangeConcatenated(fileName, startColumn, endColumn, rowIndex, fileName);
                 System.out.println("Valeurs concaténées : " + result);
             } catch (Exception e) {
                 System.err.println("Erreur lors de la lecture du fichier Excel : " + e.getMessage());
