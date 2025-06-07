@@ -19,7 +19,7 @@ public class DailyCost {
     private Long id;
 
     private String name;
-    private Double drilling; // Changed to camelCase
+    private Double drillingRig; // Changed to camelCase
     private Double mudLogging; // Changed to camelCase
     private Double downwholeTools; // Changed to camelCase
     private Double drillingMud; // Changed to camelCase
@@ -51,7 +51,7 @@ public class DailyCost {
             Double rigSupervision, Double communications, Double waterSupply,
             Double waterServices, Double security, Double dailyCost) {
         this.name = name;
-        this.drilling = drillingRig;
+        this.drillingRig = drillingRig;
         this.mudLogging = mudLogging;
         this.downwholeTools = downwholeTools;
         this.drillingMud = drillingMud;
@@ -88,11 +88,11 @@ public class DailyCost {
     }
 
     public Double getDrillingRig() {
-        return drilling;
+        return drillingRig;
     }
 
     public void setDrillingRig(Double drillingRig) {
-        this.drilling = drillingRig;
+        this.drillingRig = drillingRig;
     }
 
     public Double getMudLogging() {
