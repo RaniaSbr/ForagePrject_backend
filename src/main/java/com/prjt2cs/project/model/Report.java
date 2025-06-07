@@ -15,8 +15,9 @@ public class Report {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "REMARKS")
-    private List<String> remarks = new ArrayList<>();
+    @Column(name = "REMARKS", length = 4000)
+    private String remarks;
+    
 
     @Column(name = "PHASE")
     private String phase;
@@ -75,12 +76,12 @@ public class Report {
         this.id = id;
     }
 
-    public List<String> getRemarks() {
-        return remarks;
+    public void setRemarks(List<String> remarksList) {
+        this.remarks = String.join(";", remarksList);
     }
-
-    public void setRemarks(List<String> remarks) {
-        this.remarks = remarks;
+    
+    public List<String> getRemarks() {
+        return remarks != null ? List.of(remarks.split(";")) : new ArrayList<>();
     }
 
     public void setPhase(String phase) {
