@@ -7,6 +7,7 @@ import com.prjt2cs.project.repository.ReportRepository;
 import com.prjt2cs.project.repository.DailyCostRepository;
 import com.prjt2cs.project.repository.OperationRepository;
 import com.prjt2cs.project.service.ExcelReader;
+import java.util.Base64;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -15,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,7 +29,9 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/reports")
@@ -521,5 +525,293 @@ public class ReportUploadController {
             System.err.println("Exception evaluating cell " + column + rowIndex + ": " + e.getMessage());
             return 0.0;
         }
+    }
+
+    @PostMapping("/extract")
+    public ResponseEntity<Map<String, Object>> extractReportData(@RequestParam("file") MultipartFile file) {
+        try {
+            byte[] fileBytes = file.getBytes();
+
+            // Extraire toutes les données sans sauvegarder
+            Map<String, Object> extractedData = new HashMap<>();
+
+            // Données du rapport principal
+            String drillHoursStr = excelReader.readCellRangeConcatenated(
+                    new ByteArrayInputStream(fileBytes), "BF", "BH", 6, 0);
+            double drillH = parseDouble(drillHoursStr, 0.0);
+
+            String depthStr = excelReader.readCellRangeConcatenated(
+                    new ByteArrayInputStream(fileBytes), "U", "Z", 6, 0);
+            double depth = parseDouble(depthStr, 0.0);
+
+            String costStr = excelReader.readCellRangeConcatenated(
+                    new ByteArrayInputStream(fileBytes), "AF", "AK", 6, 0);
+            double cost = parseDouble(costStr, 0.0);
+
+            String phase = excelReader.readCellRangeConcatenated(
+                    new ByteArrayInputStream(fileBytes), "M", "P", 10, 0);
+
+            String plannedOpe1 = excelReader.readCellRangeConcatenated(
+                    new ByteArrayInputStream(fileBytes), "O", "BC", 59, 0);
+            String plannedOpe2 = excelReader.readCellRangeConcatenated(
+                    new ByteArrayInputStream(fileBytes), "O", "BC", 58, 0);
+            String plannedOpe = plannedOpe1 + " " + plannedOpe2;
+
+            String dayStr = excelReader.readCellRangeConcatenated(
+                    new ByteArrayInputStream(fileBytes), "BQ", "BY", 62, 0);
+            double day = parseDouble(dayStr, 0.0);
+
+            String drillProgressStr = excelReader.readCellRangeConcatenated(
+                    new ByteArrayInputStream(fileBytes), "AW", "BA", 6, 0);
+            double drillProgress = parseDouble(drillProgressStr, 0.0);
+
+            // Données du rapport
+            Map<String, Object> reportData = new HashMap<>();
+            reportData.put("drillingHours", drillH);
+            reportData.put("depth", depth);
+            reportData.put("tvd", cost);
+            reportData.put("phase", phase);
+            reportData.put("plannedOperation", plannedOpe);
+            reportData.put("day", day);
+            reportData.put("drillingProgress", drillProgress);
+
+            // Extraire les opérations
+            List<Map<String, Object>> operations = extractOperations(fileBytes);
+
+            // Extraire les coûts quotidiens
+            Map<String, Object> dailyCostData = extractDailyCost(fileBytes);
+
+            // Extraire les remarques
+            List<String> remarks = extractRemarks(fileBytes);
+
+            extractedData.put("report", reportData);
+            extractedData.put("operations", operations);
+            extractedData.put("dailyCost", dailyCostData);
+            extractedData.put("remarks", remarks);
+            extractedData.put("fileData", Base64.getEncoder().encodeToString(fileBytes)); // Pour la sauvegarde
+                                                                                          // ultérieure
+
+            return ResponseEntity.ok(extractedData);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Erreur lors de l'extraction: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/confirm")
+    public ResponseEntity<String> confirmAndSaveReport(@RequestBody Map<String, Object> confirmData) {
+        try {
+            // Récupérer les données du fichier
+            String fileDataBase64 = (String) confirmData.get("fileData");
+            byte[] fileBytes = Base64.getDecoder().decode(fileDataBase64);
+
+            // Créer le rapport avec les données modifiées
+            Report report = new Report();
+            report.setExcelFile(fileBytes);
+            report.setDate(LocalDate.now());
+
+            // Utiliser les données modifiées du frontend
+            Map<String, Object> reportData = (Map<String, Object>) confirmData.get("report");
+            report.setDrillingHours(((Number) reportData.get("drillingHours")).doubleValue());
+            report.setDepth(((Number) reportData.get("depth")).doubleValue());
+            report.setTvd(((Number) reportData.get("tvd")).doubleValue());
+            report.setPhase((String) reportData.get("phase"));
+            report.setPlannedOperation((String) reportData.get("plannedOperation"));
+            report.setDay(((Number) reportData.get("day")).doubleValue());
+            report.setDrillingProgress(((Number) reportData.get("drillingProgress")).doubleValue());
+
+            // Remarques
+            List<String> remarks = (List<String>) confirmData.get("remarks");
+            report.setRemarks(remarks);
+
+            // Sauvegarder le rapport
+            Report savedReport = reportRepository.save(report);
+
+            // Sauvegarder les opérations modifiées
+            List<Map<String, Object>> operationsData = (List<Map<String, Object>>) confirmData.get("operations");
+            saveOperations(operationsData, savedReport);
+
+            // Sauvegarder les coûts quotidiens modifiés
+            Map<String, Object> dailyCostData = (Map<String, Object>) confirmData.get("dailyCost");
+            saveDailyCost(dailyCostData, savedReport);
+
+            return ResponseEntity.ok("Rapport sauvegardé avec succès! ID: " + savedReport.getId());
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur lors de la sauvegarde: " + e.getMessage());
+        }
+    }
+
+    // Méthodes utilitaires
+    private double parseDouble(String value, double defaultValue) {
+        try {
+            return (value != null && !value.trim().isEmpty()) ? Double.parseDouble(value.trim()) : defaultValue;
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    private List<Map<String, Object>> extractOperations(byte[] fileBytes) {
+        List<Map<String, Object>> operations = new ArrayList<>();
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("H:mm");
+
+        for (int row = 22; row <= 43; row++) {
+            try {
+                String startTimeStr = excelReader.readCellRangeConcatenated(
+                        new ByteArrayInputStream(fileBytes), "B", "D", row, 0);
+
+                if (startTimeStr == null || startTimeStr.trim().isEmpty()) {
+                    continue;
+                }
+
+                Map<String, Object> opData = new HashMap<>();
+                opData.put("code", excelReader.readCellRangeConcatenated(
+                        new ByteArrayInputStream(fileBytes), "AW", "AZ", row, 0));
+                opData.put("startTime", startTimeStr.trim());
+                opData.put("endTime", excelReader.readCellRangeConcatenated(
+                        new ByteArrayInputStream(fileBytes), "F", "H", row, 0));
+                opData.put("description", excelReader.readCellRangeConcatenated(
+                        new ByteArrayInputStream(fileBytes), "I", "AV", row, 0));
+                opData.put("initialDepth", parseDouble(excelReader.readCellRangeConcatenated(
+                        new ByteArrayInputStream(fileBytes), "BA", "BE", row, 0), 0.0));
+                opData.put("finalDepth", parseDouble(excelReader.readCellRangeConcatenated(
+                        new ByteArrayInputStream(fileBytes), "BF", "BK", row, 0), 0.0));
+                opData.put("rate", excelReader.readCellRangeConcatenated(
+                        new ByteArrayInputStream(fileBytes), "BR", "BT", row, 0));
+
+                operations.add(opData);
+            } catch (Exception e) {
+                logger.error("Erreur extraction opération ligne {}: {}", row, e.getMessage());
+            }
+        }
+        return operations;
+    }
+
+    private Map<String, Object> extractDailyCost(byte[] fileBytes) {
+        Map<String, Object> costData = new HashMap<>();
+
+        // Essayer différentes feuilles et colonnes
+        int numSheets = 0;
+        try (InputStream is = new ByteArrayInputStream(fileBytes)) {
+            Workbook workbook = new XSSFWorkbook(is);
+            numSheets = workbook.getNumberOfSheets();
+        } catch (Exception e) {
+            logger.error("Erreur lecture structure Excel: {}", e.getMessage());
+        }
+
+        // Essayer sheet 1 puis sheet 0, colonne G puis F
+        String[] columns = { "G", "F" };
+        int[] sheets = numSheets > 1 ? new int[] { 1, 0 } : new int[] { 0 };
+
+        for (int sheetIndex : sheets) {
+            for (String column : columns) {
+                costData.put("drillingRig", evaluateCell(fileBytes, column, 12, sheetIndex));
+                costData.put("mudLogging", evaluateCell(fileBytes, column, 17, sheetIndex));
+                costData.put("downwholeTools", evaluateCell(fileBytes, column, 21, sheetIndex));
+                costData.put("drillingMud", evaluateCell(fileBytes, column, 26, sheetIndex));
+                costData.put("solidControl", evaluateCell(fileBytes, column, 31, sheetIndex));
+                costData.put("electricServices", evaluateCell(fileBytes, column, 37, sheetIndex));
+                costData.put("bits", evaluateCell(fileBytes, column, 43, sheetIndex));
+                costData.put("casing", evaluateCell(fileBytes, column, 46, sheetIndex));
+                costData.put("accesoriesCasing", evaluateCell(fileBytes, column, 51, sheetIndex));
+                costData.put("casingTubing", evaluateCell(fileBytes, column, 55, sheetIndex));
+                costData.put("cementing", evaluateCell(fileBytes, column, 63, sheetIndex));
+                costData.put("rigSupervision", evaluateCell(fileBytes, column, 68, sheetIndex));
+                costData.put("communications", evaluateCell(fileBytes, column, 73, sheetIndex));
+                costData.put("waterSupply", evaluateCell(fileBytes, column, 77, sheetIndex));
+                costData.put("waterServices", evaluateCell(fileBytes, column, 80, sheetIndex));
+                costData.put("security", evaluateCell(fileBytes, column, 84, sheetIndex));
+                costData.put("dailyCost", evaluateCell(fileBytes, column, 86, sheetIndex));
+
+                // Si au moins une valeur trouvée, retourner
+                if (costData.values().stream().anyMatch(v -> ((Double) v) > 0)) {
+                    return costData;
+                }
+            }
+        }
+
+        return costData;
+    }
+
+    private List<String> extractRemarks(byte[] fileBytes) {
+        List<String> remarksList = new ArrayList<>();
+        for (int row = 46; row <= 56; row++) {
+            try {
+                String rowRemark = excelReader.readCellRangeConcatenated(
+                        new ByteArrayInputStream(fileBytes), "B", "BG", row, 0);
+                if (rowRemark != null && !rowRemark.trim().isEmpty()) {
+                    remarksList.add(rowRemark.trim());
+                }
+            } catch (Exception e) {
+                logger.error("Erreur extraction remarque ligne {}: {}", row, e.getMessage());
+            }
+        }
+        return remarksList;
+    }
+
+    private void saveOperations(List<Map<String, Object>> operationsData, Report report) {
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("H:mm");
+
+        for (Map<String, Object> opData : operationsData) {
+            Operation op = new Operation();
+            op.setCode((String) opData.get("code"));
+
+            // Parse times
+            try {
+                String startTimeStr = (String) opData.get("startTime");
+                op.setStartTime(LocalTime.parse(startTimeStr.trim()));
+
+                String endTimeStr = (String) opData.get("endTime");
+                if (endTimeStr != null && !endTimeStr.trim().isEmpty()) {
+                    if (endTimeStr.equals("24:00")) {
+                        op.setEndTime(LocalTime.of(0, 0));
+                    } else {
+                        op.setEndTime(LocalTime.parse(endTimeStr.trim()));
+                    }
+                } else {
+                    op.setEndTime(op.getStartTime().plusHours(1));
+                }
+            } catch (Exception e) {
+                logger.error("Erreur parsing time: {}", e.getMessage());
+                continue;
+            }
+
+            op.setDescription((String) opData.get("description"));
+            op.setInitialDepth(((Number) opData.get("initialDepth")).doubleValue());
+            op.setFinalDepth(((Number) opData.get("finalDepth")).doubleValue());
+            op.setRate((String) opData.get("rate"));
+            op.setDate(report.getDate());
+            op.setReport(report);
+
+            operationRepository.save(op);
+        }
+    }
+
+    private void saveDailyCost(Map<String, Object> dailyCostData, Report report) {
+        DailyCost dailyCost = new DailyCost();
+        dailyCost.setName("Daily Cost for " + report.getDate());
+
+        dailyCost.setDrillingRig(((Number) dailyCostData.get("drillingRig")).doubleValue());
+        dailyCost.setMudLogging(((Number) dailyCostData.get("mudLogging")).doubleValue());
+        dailyCost.setDownwholeTools(((Number) dailyCostData.get("downwholeTools")).doubleValue());
+        dailyCost.setDrillingMud(((Number) dailyCostData.get("drillingMud")).doubleValue());
+        dailyCost.setSolidControl(((Number) dailyCostData.get("solidControl")).doubleValue());
+        dailyCost.setElectricServices(((Number) dailyCostData.get("electricServices")).doubleValue());
+        dailyCost.setBits(((Number) dailyCostData.get("bits")).doubleValue());
+        dailyCost.setCasing(((Number) dailyCostData.get("casing")).doubleValue());
+        dailyCost.setAccesoriesCasing(((Number) dailyCostData.get("accesoriesCasing")).doubleValue());
+        dailyCost.setCasingTubing(((Number) dailyCostData.get("casingTubing")).doubleValue());
+        dailyCost.setCementing(((Number) dailyCostData.get("cementing")).doubleValue());
+        dailyCost.setRigSupervision(((Number) dailyCostData.get("rigSupervision")).doubleValue());
+        dailyCost.setCommunications(((Number) dailyCostData.get("communications")).doubleValue());
+        dailyCost.setWaterSupply(((Number) dailyCostData.get("waterSupply")).doubleValue());
+        dailyCost.setWaterServices(((Number) dailyCostData.get("waterServices")).doubleValue());
+        dailyCost.setSecurity(((Number) dailyCostData.get("security")).doubleValue());
+        dailyCost.setDailyCost(((Number) dailyCostData.get("dailyCost")).doubleValue());
+
+        dailyCost.setReport(report);
+        dailyCostRepository.save(dailyCost);
     }
 }
