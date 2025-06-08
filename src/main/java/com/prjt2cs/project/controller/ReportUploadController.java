@@ -10,6 +10,8 @@ import com.prjt2cs.project.service.ExcelReader;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,6 +32,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/reports")
 public class ReportUploadController {
+
+    private static final Logger logger = LoggerFactory.getLogger(ReportUploadController.class);
 
     private final ReportRepository reportRepository;
     private final OperationRepository operationRepository;
@@ -132,40 +136,31 @@ public class ReportUploadController {
                 report.setDrillingProgress(0.0);
             }
 
+            // Save report first to get its ID
+            Report savedReport = reportRepository.save(report);
+
+            // Create and add operations (from rows 22 to 43)// Dans
+
+            // PAR CETTE VERSION CORRIGÉE :
+
             List<String> remarksList = new ArrayList<>();
 
             for (int row = 46; row <= 56; row++) {
                 try {
-                    // Read all data first with explicit sheet index
                     String rowRemark = excelReader.readCellRangeConcatenated(
                             new ByteArrayInputStream(fileBytes), "B", "BG", row, 0);
 
-                    // Print debug info for this row
-                    System.out.println("\nProcessing row " + row + ":");
-                    System.out.println("  rowRemark: " + rowRemark);
-
-                    // Skip entirely empty rows
-                    if (rowRemark == null || rowRemark.trim().isEmpty()) {
-                        System.out.println("Skipping row " + row + " - missing remark");
-                        continue;
+                    if (rowRemark != null && !rowRemark.trim().isEmpty()) {
+                        remarksList.add(rowRemark.trim());
                     }
-
-                    remarksList.add(rowRemark.trim());
-                    System.out.println("Successfully added remark from row " + row);
-
                 } catch (Exception e) {
-                    System.out.println("Unexpected error processing row " + row + ": " + e.getMessage());
-                    e.printStackTrace();
+                    // Log error but continue processing
+                    logger.error("Error processing row {}: {}", row, e.getMessage());
                 }
             }
 
-            // Set remarks after adding all valid entries
-            report.setRemarks(remarksList);
-
-            // Save report first to get its ID
-            Report savedReport = reportRepository.save(report);
-
-            // Create and add operations (from rows 22 to 43)
+            // Set remarks - the entity will handle null/empty cases
+            report.setRemarks(remarksList.isEmpty() ? null : remarksList);
             int operationsAdded = addOperationsToReport(fileBytes, savedReport);
 
             // Add DailyCost

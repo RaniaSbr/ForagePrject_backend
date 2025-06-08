@@ -2,9 +2,12 @@ package com.prjt2cs.project.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import jakarta.persistence.Column;
 
 @Entity
+@Table(name = "PREVISION_PHASE")
+
 public class PhasePrevision {
 
     @Id

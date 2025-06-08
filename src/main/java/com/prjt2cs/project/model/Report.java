@@ -3,6 +3,7 @@ package com.prjt2cs.project.model;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -14,9 +15,6 @@ public class Report {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(name = "REMARKS", length = 4000)
-    private String remarks;
 
     @Column(name = "PHASE")
     private String phase;
@@ -66,12 +64,15 @@ public class Report {
         this.id = id;
     }
 
+    @Column(name = "REMARKS", length = 4000)
+    private String remarks;
+
     public void setRemarks(List<String> remarksList) {
-        this.remarks = String.join(";", remarksList);
+        this.remarks = remarksList != null ? String.join("|||", remarksList) : null;
     }
-    
+
     public List<String> getRemarks() {
-        return remarks != null ? List.of(remarks.split(";")) : new ArrayList<>();
+        return remarks != null ? Arrays.asList(remarks.split("\\|\\|\\|")) : new ArrayList<>();
     }
 
     public void setPhase(String phase) {
