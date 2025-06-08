@@ -75,11 +75,11 @@ public class ExcelReader {
      * An improved version of readSingleCell that handles different cell types
      * properly
      */
-    public String readSingleCell(InputStream inputStream, String columnLetter, int rowIndex, int sheetIndex) {
+    public double readSingleCellAsDouble(InputStream inputStream, String columnLetter, int rowIndex, int sheetIndex) {
         try (Workbook workbook = new XSSFWorkbook(inputStream)) {
             if (sheetIndex < 0 || sheetIndex >= workbook.getNumberOfSheets()) {
                 System.out.println("Invalid sheet index: " + sheetIndex);
-                return "";
+                return Double.NaN;
             }
 
             Sheet sheet = workbook.getSheetAt(sheetIndex);
@@ -88,46 +88,38 @@ public class ExcelReader {
 
             if (row == null) {
                 System.out.println("Row " + rowIndex + " does not exist in sheet " + sheetIndex);
-                return "";
+                return Double.NaN;
             }
 
             Cell cell = row.getCell(columnIndex);
             if (cell == null) {
                 System.out.println("Cell at column " + columnLetter + ", row " + rowIndex + " does not exist");
-                return "";
+                return Double.NaN;
             }
 
-            // Handle different cell types appropriately
+            // Handle numeric and formula cells that result in numbers
             return switch (cell.getCellType()) {
-                case STRING -> cell.getStringCellValue();
-                case NUMERIC -> {
-                    // Check if it's a date
-                    if (DateUtil.isCellDateFormatted(cell)) {
-                        yield cell.getLocalDateTimeCellValue().toString();
-                    } else {
-                        // Use BigDecimal to prevent scientific notation
-                        yield new java.math.BigDecimal(cell.getNumericCellValue()).toPlainString();
-                    }
-                }
-                case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
+                case NUMERIC -> cell.getNumericCellValue();
                 case FORMULA -> {
                     FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
                     CellValue cellValue = evaluator.evaluate(cell);
-
                     yield switch (cellValue.getCellType()) {
-                        case STRING -> cellValue.getStringValue();
-                        case NUMERIC -> new java.math.BigDecimal(cellValue.getNumberValue()).toPlainString();
-                        case BOOLEAN -> String.valueOf(cellValue.getBooleanValue());
-                        default -> "";
+                        case NUMERIC -> cellValue.getNumberValue();
+                        default -> {
+                            System.out.println("Formula does not evaluate to a number");
+                            yield Double.NaN;
+                        }
                     };
                 }
-                case ERROR -> "ERROR: " + cell.getErrorCellValue();
-                case BLANK, _NONE -> "";
+                default -> {
+                    System.out.println("Cell is not numeric or numeric formula");
+                    yield Double.NaN;
+                }
             };
         } catch (IOException e) {
             System.err.println("Error reading Excel cell: " + e.getMessage());
             e.printStackTrace();
-            return "";
+            return Double.NaN;
         }
     }
 
@@ -284,4 +276,48 @@ public class ExcelReader {
             e.printStackTrace();
         }
     }
+
+    public String readCell(InputStream inputStream, String columnLetter, int rowIndex, int sheetIndex) {
+        try (Workbook workbook = new XSSFWorkbook(inputStream)) {
+            if (sheetIndex < 0 || sheetIndex >= workbook.getNumberOfSheets()) {
+                throw new IllegalArgumentException("Index de feuille invalide : " + sheetIndex);
+            }
+
+            Sheet sheet = workbook.getSheetAt(sheetIndex);
+            int columnIndex = excelColumnToIndex(columnLetter);
+            Row row = sheet.getRow(rowIndex - 1);
+
+            if (row != null) {
+                Cell cell = row.getCell(columnIndex);
+                if (cell != null) {
+                    return getCellValueAsString(cell);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Erreur de lecture cellule [" + columnLetter + rowIndex + "] : " + e.getMessage());
+        }
+        return null;
+    }
+
+    private String getCellValueAsString(Cell cell) {
+        return switch (cell.getCellType()) {
+            case STRING -> cell.getStringCellValue();
+            case NUMERIC -> DateUtil.isCellDateFormatted(cell) ? cell.getDateCellValue().toString()
+                    : Double.toString(cell.getNumericCellValue());
+            case BOOLEAN -> Boolean.toString(cell.getBooleanCellValue());
+            case FORMULA -> {
+                FormulaEvaluator evaluator = cell.getSheet().getWorkbook().getCreationHelper().createFormulaEvaluator();
+                CellValue cellValue = evaluator.evaluate(cell);
+                yield switch (cellValue.getCellType()) {
+                    case STRING -> cellValue.getStringValue();
+                    case NUMERIC -> Double.toString(cellValue.getNumberValue());
+                    case BOOLEAN -> Boolean.toString(cellValue.getBooleanValue());
+                    default -> "";
+                };
+            }
+            case BLANK, _NONE -> "";
+            default -> throw new IllegalArgumentException("Unexpected value: " + cell.getCellType());
+        };
+    }
+
 }

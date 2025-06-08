@@ -51,6 +51,7 @@ public class Report {
 
     @Column(name = "ACTUAL_DAY")
     private Double actualDay;
+    // AJOUTER ces champs dans votre modèle Report :
 
     // Champs pour le fichier Excel
     @Lob
