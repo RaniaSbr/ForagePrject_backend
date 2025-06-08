@@ -1,8 +1,11 @@
 package com.prjt2cs.project.controller;
 
+import com.prjt2cs.project.dto.PhaseStatus;
 import com.prjt2cs.project.model.PhasePrevision;
 import com.prjt2cs.project.repository.PhasePrevisionRepository;
 import com.prjt2cs.project.service.ExcelReader;
+import com.prjt2cs.project.service.MonitoringService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -112,6 +115,19 @@ public class PrevisionController {
         }
     }
 
+    @Autowired
+private MonitoringService monitoringService;
+
+@GetMapping("/etat-par-phase")
+public ResponseEntity<List<PhaseStatus>> getEtatParPhase() {
+    try {
+        return ResponseEntity.ok(monitoringService.getEtatParPhase());
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError().build();
+    }
+}
+
+
     // Méthode helper pour lire une cellule avec un nouveau stream à chaque fois
     private String readCellFromFile(MultipartFile file, String column, int row, int sheetIndex) {
         try (InputStream inputStream = file.getInputStream()) {
@@ -149,4 +165,6 @@ public class PrevisionController {
             return ResponseEntity.badRequest().body("Erreur : " + e.getMessage());
         }
     }
+
+
 }
