@@ -36,7 +36,6 @@ public class ReportUploadController {
     private static final Logger logger = LoggerFactory.getLogger(ReportUploadController.class);
 
     private final ReportRepository reportRepository;
-    private final OperationRepository operationRepository;
     private final DailyCostRepository dailyCostRepository;
     private final ExcelReader excelReader;
 
@@ -47,7 +46,6 @@ public class ReportUploadController {
             ExcelReader excelReader) {
         this.dailyCostRepository = dailyCostRepository;
         this.reportRepository = reportRepository;
-        this.operationRepository = operationRepository;
         this.excelReader = excelReader;
     }
 
@@ -321,11 +319,12 @@ public class ReportUploadController {
             // Log workbook structure for debugging
             int numSheets = 0;
             try (InputStream is = new ByteArrayInputStream(fileBytes)) {
-                Workbook workbook = new XSSFWorkbook(is);
-                numSheets = workbook.getNumberOfSheets();
-                System.out.println("Excel file has " + numSheets + " sheets");
-                for (int i = 0; i < numSheets; i++) {
-                    System.out.println("Sheet " + i + ": " + workbook.getSheetName(i));
+                try (Workbook workbook = new XSSFWorkbook(is)) {
+                    numSheets = workbook.getNumberOfSheets();
+                    System.out.println("Excel file has " + numSheets + " sheets");
+                    for (int i = 0; i < numSheets; i++) {
+                        System.out.println("Sheet " + i + ": " + workbook.getSheetName(i));
+                    }
                 }
             } catch (Exception e) {
                 System.err.println("Error checking workbook structure: " + e.getMessage());
