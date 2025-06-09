@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 
 @Entity
 @Table(name = "REP")
@@ -39,12 +40,20 @@ public class Report {
 
     @Column(name = "ACTUAL_DAY")
     private Double actualDay;
-    // AJOUTER ces champs dans votre modèle Report :
+
+    @Column(name = "REMARKS", length = 4000)
+    private String remarks;
 
     // Champs pour le fichier Excel
     @Lob
     @Column(name = "EXCEL_FILE")
     private byte[] excelFile;
+
+    // NOUVELLE RELATION AVEC PUIT
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "PUIT_ID", nullable = false)
+    @JsonBackReference
+    private Puit puit;
 
     @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
@@ -55,6 +64,14 @@ public class Report {
     @JsonManagedReference
     private DailyCost dailyCost;
 
+    // Constructeurs
+    public Report() {
+    }
+
+    public Report(Puit puit) {
+        this.puit = puit;
+    }
+
     // Getters et Setters existants
     public Long getId() {
         return id;
@@ -63,9 +80,6 @@ public class Report {
     public void setId(Long id) {
         this.id = id;
     }
-
-    @Column(name = "REMARKS", length = 4000)
-    private String remarks;
 
     public void setRemarks(List<String> remarksList) {
         this.remarks = remarksList != null ? String.join("|||", remarksList) : null;
@@ -163,7 +177,7 @@ public class Report {
         this.drillingHours = drillingHours;
     }
 
-    // Nouveaux getters et setters pour le fichier Excel
+    // Getters et setters pour le fichier Excel
     public byte[] getExcelFile() {
         return excelFile;
     }
@@ -172,13 +186,31 @@ public class Report {
         this.excelFile = excelFile;
     }
 
-    // Méthodes utilitaires pour gérer le fichier Excel
+    // NOUVEAUX GETTERS ET SETTERS POUR PUIT
+    public Puit getPuit() {
+        return puit;
+    }
+
+    public void setPuit(Puit puit) {
+        this.puit = puit;
+    }
+
+    // Méthodes utilitaires
     public boolean hasExcelFile() {
         return excelFile != null && excelFile.length > 0;
     }
 
     public void clearExcelFile() {
         this.excelFile = null;
+    }
 
+    // Méthode utilitaire pour obtenir l'ID du puit
+    public String getPuitId() {
+        return puit != null ? puit.getPuitId() : null;
+    }
+
+    // Méthode utilitaire pour obtenir le nom du puit
+    public String getPuitName() {
+        return puit != null ? puit.getPuitName() : null;
     }
 }

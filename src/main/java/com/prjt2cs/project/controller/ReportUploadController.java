@@ -6,6 +6,8 @@ import com.prjt2cs.project.model.Report;
 import com.prjt2cs.project.repository.ReportRepository;
 import com.prjt2cs.project.repository.DailyCostRepository;
 import com.prjt2cs.project.repository.OperationRepository;
+import com.prjt2cs.project.model.Puit;
+import com.prjt2cs.project.repository.PuitRepository;
 import com.prjt2cs.project.service.ExcelReader;
 import java.util.Base64;
 
@@ -42,23 +44,29 @@ public class ReportUploadController {
     private final ReportRepository reportRepository;
     private final OperationRepository operationRepository;
     private final DailyCostRepository dailyCostRepository;
+    private final PuitRepository puitRepository;
     private final ExcelReader excelReader;
 
     public ReportUploadController(
             ReportRepository reportRepository,
             DailyCostRepository dailyCostRepository,
             OperationRepository operationRepository,
-            ExcelReader excelReader) {
+            ExcelReader excelReader,
+            PuitRepository puitRepository) { // NOUVEAU
         this.dailyCostRepository = dailyCostRepository;
         this.reportRepository = reportRepository;
         this.operationRepository = operationRepository;
         this.excelReader = excelReader;
+        this.puitRepository = puitRepository; // NOUVEAU
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<String> createReportFromExcel(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<String> createReportFromExcel(@RequestParam("file") MultipartFile file,
+            @RequestParam("puitId") String puitId) {
         try {
             // Copy file content to memory
+            Puit puit = puitRepository.findById(puitId)
+                    .orElseThrow(() -> new RuntimeException("Puit non trouvé avec l'ID: " + puitId));
 
             // Enregistrer le fichier Excel dans le modèle Report
             byte[] fileBytes = file.getBytes();
@@ -192,6 +200,8 @@ public class ReportUploadController {
                 responseBuilder.append("\nNo DailyCost created.");
             }
 
+            responseBuilder.append(", Puit: ").append(puit.getPuitName())
+                    .append(" (ID: ").append(puit.getPuitId()).append(")");
             return ResponseEntity.ok(responseBuilder.toString());
 
         } catch (Exception e) {
@@ -528,8 +538,13 @@ public class ReportUploadController {
     }
 
     @PostMapping("/extract")
-    public ResponseEntity<Map<String, Object>> extractReportData(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<Map<String, Object>> extractReportData(@RequestParam("file") MultipartFile file,
+            @RequestParam("puitId") String puitId) {
         try {
+
+            Puit puit = puitRepository.findById(puitId)
+                    .orElseThrow(() -> new RuntimeException("Puit non trouvé avec l'ID: " + puitId));
+
             byte[] fileBytes = file.getBytes();
 
             // Extraire toutes les données sans sauvegarder
@@ -574,6 +589,8 @@ public class ReportUploadController {
             reportData.put("plannedOperation", plannedOpe);
             reportData.put("day", day);
             reportData.put("drillingProgress", drillProgress);
+            extractedData.put("puitId", puitId); // AJOUTER L'ID DU PUIT
+            extractedData.put("puitName", puit.getPuitName()); // AJOUTER LE NOM DU PUIT
 
             // Extraire les opérations
             List<Map<String, Object>> operations = extractOperations(fileBytes);
@@ -603,44 +620,61 @@ public class ReportUploadController {
     public ResponseEntity<String> confirmAndSaveReport(@RequestBody Map<String, Object> confirmData) {
         try {
             // Récupérer les données du fichier
-            String fileDataBase64 = (String) confirmData.get("fileData");
-            byte[] fileBytes = Base64.getDecoder().decode(fileDataBase64);
+            try {
+                // Récupérer l'ID du puit depuis les données confirmées
+                String puitId = (String) confirmData.get("puitId");
+                if (puitId == null || puitId.trim().isEmpty()) {
+                    return ResponseEntity.badRequest().body("ID du puit manquant");
+                }
 
-            // Créer le rapport avec les données modifiées
-            Report report = new Report();
-            report.setExcelFile(fileBytes);
-            report.setDate(LocalDate.now());
+                // Vérifier que le puit existe
+                Puit puit = puitRepository.findById(puitId)
+                        .orElseThrow(() -> new RuntimeException("Puit non trouvé avec l'ID: " + puitId));
 
-            // Utiliser les données modifiées du frontend
-            Map<String, Object> reportData = (Map<String, Object>) confirmData.get("report");
-            report.setDrillingHours(((Number) reportData.get("drillingHours")).doubleValue());
-            report.setDepth(((Number) reportData.get("depth")).doubleValue());
-            report.setTvd(((Number) reportData.get("tvd")).doubleValue());
-            report.setPhase((String) reportData.get("phase"));
-            report.setPlannedOperation((String) reportData.get("plannedOperation"));
-            report.setDay(((Number) reportData.get("day")).doubleValue());
-            report.setDrillingProgress(((Number) reportData.get("drillingProgress")).doubleValue());
+                String fileDataBase64 = (String) confirmData.get("fileData");
+                byte[] fileBytes = Base64.getDecoder().decode(fileDataBase64);
 
-            // Remarques
-            List<String> remarks = (List<String>) confirmData.get("remarks");
-            report.setRemarks(remarks);
+                // Créer le rapport avec les données modifiées
+                Report report = new Report();
+                report.setPuit(puit); // ASSOCIER LE PUIT
 
-            // Sauvegarder le rapport
-            Report savedReport = reportRepository.save(report);
+                report.setExcelFile(fileBytes);
+                report.setDate(LocalDate.now());
 
-            // Sauvegarder les opérations modifiées
-            List<Map<String, Object>> operationsData = (List<Map<String, Object>>) confirmData.get("operations");
-            saveOperations(operationsData, savedReport);
+                // Utiliser les données modifiées du frontend
+                Map<String, Object> reportData = (Map<String, Object>) confirmData.get("report");
+                report.setDrillingHours(((Number) reportData.get("drillingHours")).doubleValue());
+                report.setDepth(((Number) reportData.get("depth")).doubleValue());
+                report.setTvd(((Number) reportData.get("tvd")).doubleValue());
+                report.setPhase((String) reportData.get("phase"));
+                report.setPlannedOperation((String) reportData.get("plannedOperation"));
+                report.setDay(((Number) reportData.get("day")).doubleValue());
+                report.setDrillingProgress(((Number) reportData.get("drillingProgress")).doubleValue());
 
-            // Sauvegarder les coûts quotidiens modifiés
-            Map<String, Object> dailyCostData = (Map<String, Object>) confirmData.get("dailyCost");
-            saveDailyCost(dailyCostData, savedReport);
+                // Remarques
+                List<String> remarks = (List<String>) confirmData.get("remarks");
+                report.setRemarks(remarks);
 
-            return ResponseEntity.ok("Rapport sauvegardé avec succès! ID: " + savedReport.getId());
+                // Sauvegarder le rapport
+                Report savedReport = reportRepository.save(report);
 
+                // Sauvegarder les opérations modifiées
+                List<Map<String, Object>> operationsData = (List<Map<String, Object>>) confirmData.get("operations");
+                saveOperations(operationsData, savedReport);
+
+                // Sauvegarder les coûts quotidiens modifiés
+                Map<String, Object> dailyCostData = (Map<String, Object>) confirmData.get("dailyCost");
+                saveDailyCost(dailyCostData, savedReport);
+
+                return ResponseEntity.ok("Rapport sauvegardé avec succès! ID: " + savedReport.getId());
+
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Erreur lors de la sauvegarde: " + e.getMessage());
+            }
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erreur lors de la sauvegarde: " + e.getMessage());
+                    .body("Erreur lors de la confirmation: " + e.getMessage());
         }
     }
 
