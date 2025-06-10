@@ -51,6 +51,19 @@
             <version>5.2.3</version>
         </dependency>
         
+
+        <!-- Oracle XML dependencies needed for XMLType -->
+<dependency>
+    <groupId>com.oracle.database.xml</groupId>
+    <artifactId>xdb</artifactId>
+    <version>19.8.0.0</version>
+</dependency>
+<dependency>
+    <groupId>com.oracle.database.xml</groupId>
+    <artifactId>xmlparserv2</artifactId>
+    <version>19.8.0.0</version>
+</dependency>
+
         <!-- PDF -->
         <dependency>
             <groupId>org.apache.pdfbox</groupId>

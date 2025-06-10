@@ -10,6 +10,8 @@ import com.prjt2cs.project.service.ExcelReader;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,8 +33,9 @@ import java.util.List;
 @RequestMapping("/api/reports")
 public class ReportUploadController {
 
+    private static final Logger logger = LoggerFactory.getLogger(ReportUploadController.class);
+
     private final ReportRepository reportRepository;
-    private final OperationRepository operationRepository;
     private final DailyCostRepository dailyCostRepository;
     private final ExcelReader excelReader;
 
@@ -43,7 +46,6 @@ public class ReportUploadController {
             ExcelReader excelReader) {
         this.dailyCostRepository = dailyCostRepository;
         this.reportRepository = reportRepository;
-        this.operationRepository = operationRepository;
         this.excelReader = excelReader;
     }
 
@@ -58,10 +60,7 @@ public class ReportUploadController {
             // Create a new report
             Report report = new Report();
             report.setExcelFile(fileBytes);
-
-            // Set the date to today
             report.setDate(LocalDate.now());
-
             // Read drilling hours (as in ExcelToReportLoader)
             String drillHoursStr = excelReader.readCellRangeConcatenated(
                     new ByteArrayInputStream(fileBytes), "BF", "BH", 6, 0);
@@ -135,40 +134,31 @@ public class ReportUploadController {
                 report.setDrillingProgress(0.0);
             }
 
+            // Save report first to get its ID
+            Report savedReport = reportRepository.save(report);
+
+            // Create and add operations (from rows 22 to 43)// Dans
+
+            // PAR CETTE VERSION CORRIGÉE :
+
             List<String> remarksList = new ArrayList<>();
 
             for (int row = 46; row <= 56; row++) {
                 try {
-                    // Read all data first with explicit sheet index
                     String rowRemark = excelReader.readCellRangeConcatenated(
                             new ByteArrayInputStream(fileBytes), "B", "BG", row, 0);
 
-                    // Print debug info for this row
-                    System.out.println("\nProcessing row " + row + ":");
-                    System.out.println("  rowRemark: " + rowRemark);
-
-                    // Skip entirely empty rows
-                    if (rowRemark == null || rowRemark.trim().isEmpty()) {
-                        System.out.println("Skipping row " + row + " - missing remark");
-                        continue;
+                    if (rowRemark != null && !rowRemark.trim().isEmpty()) {
+                        remarksList.add(rowRemark.trim());
                     }
-
-                    remarksList.add(rowRemark.trim());
-                    System.out.println("Successfully added remark from row " + row);
-
                 } catch (Exception e) {
-                    System.out.println("Unexpected error processing row " + row + ": " + e.getMessage());
-                    e.printStackTrace();
+                    // Log error but continue processing
+                    logger.error("Error processing row {}: {}", row, e.getMessage());
                 }
             }
 
-            // Set remarks after adding all valid entries
-            report.setRemarks(remarksList);
-
-            // Save report first to get its ID
-            Report savedReport = reportRepository.save(report);
-
-            // Create and add operations (from rows 22 to 43)
+            // Set remarks - the entity will handle null/empty cases
+            report.setRemarks(remarksList.isEmpty() ? null : remarksList);
             int operationsAdded = addOperationsToReport(fileBytes, savedReport);
 
             // Add DailyCost
@@ -329,11 +319,12 @@ public class ReportUploadController {
             // Log workbook structure for debugging
             int numSheets = 0;
             try (InputStream is = new ByteArrayInputStream(fileBytes)) {
-                Workbook workbook = new XSSFWorkbook(is);
-                numSheets = workbook.getNumberOfSheets();
-                System.out.println("Excel file has " + numSheets + " sheets");
-                for (int i = 0; i < numSheets; i++) {
-                    System.out.println("Sheet " + i + ": " + workbook.getSheetName(i));
+                try (Workbook workbook = new XSSFWorkbook(is)) {
+                    numSheets = workbook.getNumberOfSheets();
+                    System.out.println("Excel file has " + numSheets + " sheets");
+                    for (int i = 0; i < numSheets; i++) {
+                        System.out.println("Sheet " + i + ": " + workbook.getSheetName(i));
+                    }
                 }
             } catch (Exception e) {
                 System.err.println("Error checking workbook structure: " + e.getMessage());
@@ -463,7 +454,7 @@ public class ReportUploadController {
     /**
      * Evaluates a cell's value, handling formulas properly
      */
-    private double evaluateCell(byte[] fileBytes, String column, int rowIndex, int sheetIndex) {
+    public double evaluateCell(byte[] fileBytes, String column, int rowIndex, int sheetIndex) {
         try (InputStream is = new ByteArrayInputStream(fileBytes);
                 Workbook workbook = new XSSFWorkbook(is)) {
 

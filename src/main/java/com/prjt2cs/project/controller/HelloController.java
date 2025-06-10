@@ -1,5 +1,6 @@
 package com.prjt2cs.project.controller;
 
+import com.prjt2cs.project.dto.ReportDTO;
 import com.prjt2cs.project.model.DailyCost;
 import com.prjt2cs.project.model.Operation;
 import com.prjt2cs.project.model.Report;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -40,6 +42,33 @@ public class HelloController {
     public List<Report> getAllReports() {
         return reportRepository.findAll();
     }
+// Endpoint to get all reports without link
+@GetMapping("/reportsNoLink")
+public List<ReportDTO> getAllReportsNoLink() {
+    List<Report> reports = reportRepository.findAll();
+    return reports.stream().map(this::convertToDto).collect(Collectors.toList());
+}
+
+private ReportDTO convertToDto(Report report) {
+    ReportDTO dto = new ReportDTO();
+    dto.setId(report.getId());
+    dto.setRemarks(report.getRemarks());
+    dto.setPhase(report.getPhase());
+    dto.setDepth(report.getDepth());
+    dto.setPlannedOperation(report.getPlannedOperation());
+    dto.setDate(report.getDate());
+    dto.setAnomalies(report.getAnomalies());
+    dto.setAnalysis(report.getAnalysis());
+    dto.setRecommendations(report.getRecommendations());
+    dto.setTvd(report.getTvd());
+    dto.setDrillingProgress(report.getDrillingProgress());
+    dto.setDrillingHours(report.getDrillingHours());
+    dto.setDay(report.getDay());
+    dto.setOperations(report.getOperations());
+    dto.setDailyCost(report.getDailyCost());
+    return dto;
+}
+   
 
     // Endpoint to get a specific report by ID
     @GetMapping("/reports/{id}")
