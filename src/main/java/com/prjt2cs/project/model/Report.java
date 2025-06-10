@@ -17,7 +17,6 @@ public class Report {
 
     @Column(name = "REMARKS", length = 4000)
     private String remarks;
-    
 
     @Column(name = "PHASE")
     private String phase;
