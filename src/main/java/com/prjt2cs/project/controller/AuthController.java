@@ -100,14 +100,14 @@ public class AuthController {
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
         try {
-
-            User user = userRepository.findByUsername(loginRequest.getUsername())
+            // Recherche par EMAIL uniquement
+            User user = userRepository.findByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
+    
             if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
                 return ResponseEntity.status(401).body("Invalid credentials");
             }
-
+    
             UserDetailsImpl userDetails = UserDetailsImpl.build(user);
             String jwt = jwtService.generateToken(userDetails);
     

@@ -1,16 +1,16 @@
 package com.prjt2cs.project.dto;
 
 public class LoginRequest {
-    private String username;
+    private String email;  // Changé de "username" à "email"
     private String password;
 
-    // Getters and Setters
-    public String getUsername() {
-        return username;
+    // Getters & Setters
+    public String getEmail() {
+        return email;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getPassword() {
