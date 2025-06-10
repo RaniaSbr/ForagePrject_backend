@@ -44,16 +44,19 @@ public class ReportUploadController {
     private final ReportRepository reportRepository;
     private final DailyCostRepository dailyCostRepository;
     private final PuitRepository puitRepository;
+    private final OperationRepository operationRepository;
     private final ExcelReader excelReader;
 
     public ReportUploadController(
             ReportRepository reportRepository,
             DailyCostRepository dailyCostRepository,
+
             OperationRepository operationRepository,
             ExcelReader excelReader,
             PuitRepository puitRepository) { // NOUVEAU
         this.dailyCostRepository = dailyCostRepository;
         this.reportRepository = reportRepository;
+        this.operationRepository = operationRepository;
         this.excelReader = excelReader;
         this.puitRepository = puitRepository; // NOUVEAU
     }
@@ -519,6 +522,7 @@ public class ReportUploadController {
                 case STRING:
                     String stringValue = cell.getStringCellValue().trim();
                     // Try to parse as double
+
                     try {
                         // Handle potential commas as decimal separators
                         stringValue = stringValue.replace(',', '.');

@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
@@ -29,15 +30,14 @@ public class Report {
 
     @Column(name = "REPORT_DATE")
     private LocalDate date;
-    @Column(name = "ANOMALIES", length = 2000) 
-    private String anomalies; 
+    @Column(name = "ANOMALIES", length = 2000)
+    private String anomalies;
 
-    @Column(name = "EXPERT_ANALYSIS", length = 2000) 
-    private String expertAnalysis; 
+    @Column(name = "EXPERT_ANALYSIS", length = 2000)
+    private String expertAnalysis;
 
-    @Column(name = "EXPERT_RECOMMENDATIONS", length = 2000) 
-    private String expertRecommendations; 
-
+    @Column(name = "EXPERT_RECOMMENDATIONS", length = 2000)
+    private String expertRecommendations;
 
     @Column(name = "TVD")
     private Double tvd;
@@ -56,7 +56,11 @@ public class Report {
     @Lob
     @Column(name = "EXCEL_FILE")
     private byte[] excelFile;
-
+    // NOUVELLE RELATION AVEC PUIT
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "PUIT_ID", nullable = false)
+    @JsonBackReference
+    private Puit puit;
 
     @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
@@ -79,7 +83,7 @@ public class Report {
     public void setRemarks(List<String> remarksList) {
         this.remarks = String.join(";", remarksList);
     }
-    
+
     public List<String> getRemarks() {
         return remarks != null ? List.of(remarks.split(";")) : new ArrayList<>();
     }
@@ -162,8 +166,8 @@ public class Report {
 
     public void setAnalysis(String expertAnalysis) {
         this.expertAnalysis = expertAnalysis;
-    } 
-    
+    }
+
     public String getRecommendations() {
         return expertRecommendations;
     }
@@ -213,6 +217,25 @@ public class Report {
     public void clearExcelFile() {
         this.excelFile = null;
 
+    }
+
+    // NOUVEAUX GETTERS ET SETTERS POUR PUIT
+    public Puit getPuit() {
+        return puit;
+    }
+
+    public void setPuit(Puit puit) {
+        this.puit = puit;
+    }
+
+    // Méthode utilitaire pour obtenir l'ID du puit
+    public String getPuitId() {
+        return puit != null ? puit.getPuitId() : null;
+    }
+
+    // Méthode utilitaire pour obtenir le nom du puit
+    public String getPuitName() {
+        return puit != null ? puit.getPuitName() : null;
     }
 
 }
