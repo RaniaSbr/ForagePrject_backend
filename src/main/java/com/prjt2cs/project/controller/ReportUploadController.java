@@ -45,6 +45,8 @@ public class ReportUploadController {
     private final DailyCostRepository dailyCostRepository;
     private final PuitRepository puitRepository;
     private final ExcelReader excelReader;
+    private final OperationRepository operationRepository;
+
 
     public ReportUploadController(
             ReportRepository reportRepository,
@@ -56,6 +58,7 @@ public class ReportUploadController {
         this.reportRepository = reportRepository;
         this.excelReader = excelReader;
         this.puitRepository = puitRepository; // NOUVEAU
+        this.operationRepository = operationRepository;
     }
 
     @PostMapping("/upload")

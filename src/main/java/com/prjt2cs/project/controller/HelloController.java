@@ -21,6 +21,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+
 @RestController
 @RequestMapping("/api")
 public class HelloController {
@@ -151,6 +156,31 @@ private ReportDTO convertToDto(Report report) {
 
         return ResponseEntity.ok(report);
     }
-
+    @GetMapping("/reports/{id}/download")
+    public ResponseEntity<?> downloadExcelFile(@PathVariable Long id) {
+        Optional<Report> optionalReport = reportRepository.findById(id);
+    
+        if (optionalReport.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+    
+        Report report = optionalReport.get();
+        byte[] fileData = report.getExcelFile();
+    
+        if (fileData == null || fileData.length == 0) {
+            return ResponseEntity.noContent().build();
+        }
+    
+        ByteArrayResource resource = new ByteArrayResource(fileData);
+    
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=rapport-" + report.getId() + ".xlsx");
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+    
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentLength(fileData.length)
+                .body(resource);
+    }
     //***************************************************** */
 }  

@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
@@ -57,6 +58,10 @@ public class Report {
     @Column(name = "EXCEL_FILE")
     private byte[] excelFile;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "PUIT_ID", nullable = false)
+    @JsonBackReference
+    private Puit puit;
 
     @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
@@ -94,11 +99,19 @@ public class Report {
 
     public Double getDepth() {
         return depth;
-    }
+    }    
 
     public void setDepth(Double depth) {
         this.depth = depth;
     }
+// NOUVEAUX GETTERS ET SETTERS POUR PUIT
+public Puit getPuit() {
+    return puit;
+}
+
+public void setPuit(Puit puit) {
+    this.puit = puit;
+}
 
     public Double getDay() {
         return actualDay;
