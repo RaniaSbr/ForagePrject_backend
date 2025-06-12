@@ -2,9 +2,7 @@ package com.prjt2cs.project.controller;
 
 import com.prjt2cs.project.model.Puit;
 import com.prjt2cs.project.repository.PuitRepository;
-import com.prjt2cs.project.repository.Rapport;
 
-import java.util.Optional;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

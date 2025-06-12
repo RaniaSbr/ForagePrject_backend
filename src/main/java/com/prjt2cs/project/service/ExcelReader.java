@@ -19,62 +19,6 @@ public class ExcelReader {
         return index - 1;
     }
 
-    /**
-     * Lit une plage de cellules et retourne les valeurs concaténées.
-     * Permet de spécifier la feuille à utiliser par son index (commence à 0).
-     */
-    // public String readCellRangeConcatenated(String fileName, String startColumn,
-    // String endColumn,
-    // int rowIndex, int sheetIndex) {
-    // StringBuilder concatenatedValues = new StringBuilder();
-
-    // try (InputStream is =
-    // getClass().getClassLoader().getResourceAsStream("excel/" + fileName)) {
-    // if (is == null) {
-    // System.out.println("Fichier introuvable !");
-    // return "";
-    // }
-
-    // Workbook workbook = new XSSFWorkbook(is);
-
-    // // Vérifier si l'index de la feuille est valide
-    // if (sheetIndex < 0 || sheetIndex >= workbook.getNumberOfSheets()) {
-    // System.out.println("Index de feuille invalide : " + sheetIndex);
-    // return "";
-    // }
-
-    // Sheet sheet = workbook.getSheetAt(sheetIndex);
-
-    // int startCol = excelColumnToIndex(startColumn);
-    // int endCol = excelColumnToIndex(endColumn);
-
-    // Row row = sheet.getRow(rowIndex - 1);
-    // if (row != null) {
-    // for (int colIndex = startCol; colIndex <= endCol; colIndex++) {
-    // Cell cell = row.getCell(colIndex);
-    // String value = (cell != null) ? cell.toString().trim() : "";
-
-    // // Concaténer les valeurs dans la chaîne
-    // if (!value.isEmpty()) {
-    // concatenatedValues.append(value).append(" "); // Ajoute un espace entre les
-    // valeurs
-    // }
-    // }
-    // }
-
-    // workbook.close();
-    // } catch (IOException e) {
-    // e.printStackTrace();
-    // }
-
-    // // Retirer l'espace final ajouté à la fin de la concaténation
-    // return concatenatedValues.toString().trim();
-    // }
-
-    /**
-     * An improved version of readSingleCell that handles different cell types
-     * properly
-     */
     public double readSingleCellAsDouble(InputStream inputStream, String columnLetter, int rowIndex, int sheetIndex) {
         try (Workbook workbook = new XSSFWorkbook(inputStream)) {
             if (sheetIndex < 0 || sheetIndex >= workbook.getNumberOfSheets()) {
