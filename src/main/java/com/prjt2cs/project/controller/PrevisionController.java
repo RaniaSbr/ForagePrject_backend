@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/previsions")
@@ -24,6 +24,9 @@ public class PrevisionController {
 
     @Autowired
     private ExcelReader excelReader;
+
+    @Autowired
+    private MonitoringService monitoringService;
 
     @PostMapping("/upload")
     public ResponseEntity<String> uploadPrevisions(@RequestParam("file") MultipartFile file) {
@@ -115,18 +118,59 @@ public class PrevisionController {
         }
     }
 
-    @Autowired
-private MonitoringService monitoringService;
-
-@GetMapping("/etat-par-phase")
-public ResponseEntity<List<PhaseStatus>> getEtatParPhase() {
-    try {
-        return ResponseEntity.ok(monitoringService.getEtatParPhase());
-    } catch (Exception e) {
-        return ResponseEntity.internalServerError().build();
+    // Endpoint existant pour l'état global par phase
+    @GetMapping("/etat-par-phase")
+    public ResponseEntity<List<PhaseStatus>> getEtatParPhase() {
+        try {
+            return ResponseEntity.ok(monitoringService.getEtatParPhase());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
-}
 
+    // Nouveau endpoint pour obtenir l'état par phase pour un puits spécifique
+    @GetMapping("/etat-par-phase/{puitId}")
+    public ResponseEntity<List<PhaseStatus>> getEtatParPhaseParPuits(@PathVariable String puitId) {
+        try {
+            List<PhaseStatus> result = monitoringService.getEtatParPhaseParPuits(puitId);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // Nouveau endpoint pour obtenir l'état par phase pour tous les puits
+    @GetMapping("/etat-par-phase-tous-puits")
+    public ResponseEntity<Map<String, List<PhaseStatus>>> getEtatParPhasePourTousLesPuits() {
+        try {
+            Map<String, List<PhaseStatus>> result = monitoringService.getEtatParPhasePourTousLesPuits();
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // Nouveau endpoint pour obtenir la liste des puits disponibles (version simple)
+    @GetMapping("/puits-disponibles")
+    public ResponseEntity<List<String>> getPuitsDisponibles() {
+        try {
+            List<String> wells = monitoringService.getAvailableWells();
+            return ResponseEntity.ok(wells);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // Nouveau endpoint pour obtenir la liste des puits disponibles avec détails
+    @GetMapping("/puits-disponibles-details")
+    public ResponseEntity<List<Map<String, Object>>> getPuitsDisponiblesAvecDetails() {
+        try {
+            List<Map<String, Object>> wells = monitoringService.getAvailableWellsWithDetails();
+            return ResponseEntity.ok(wells);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 
     // Méthode helper pour lire une cellule avec un nouveau stream à chaque fois
     private String readCellFromFile(MultipartFile file, String column, int row, int sheetIndex) {
@@ -165,6 +209,4 @@ public ResponseEntity<List<PhaseStatus>> getEtatParPhase() {
             return ResponseEntity.badRequest().body("Erreur : " + e.getMessage());
         }
     }
-
-
 }
