@@ -2,6 +2,9 @@ package com.prjt2cs.project.controller;
 
 import com.prjt2cs.project.model.Puit;
 import com.prjt2cs.project.repository.PuitRepository;
+import com.prjt2cs.project.repository.Rapport;
+
+import java.util.Optional;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,6 +13,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:3000") // autorise les requêtes depuis ton frontend React
 @RequestMapping("/api/puits")
 public class PuitController {
 
@@ -19,8 +23,28 @@ public class PuitController {
         this.puitRepository = puitRepository;
     }
 
-    // Endpoint pour créer un nouveau puit
+    @GetMapping("/ids")
+    public ResponseEntity<List<Map<String, String>>> getAllPuitsId() {
+        List<Map<String, String>> puits = puitRepository.findAll().stream()
+                .map(p -> Map.of(
+                        "puitId", p.getPuitId(),
+                        "name", p.getPuitName(),
+                        "location", p.getLocation(),
+                        "status", p.getStatus()))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(puits);
+    }// Endpoint pour créer un nouveau puit
+
+    @GetMapping("/count-by-status")
+    public ResponseEntity<Map<String, Long>> getCountByStatus() {
+        List<Puit> puits = puitRepository.findAll();
+        Map<String, Long> countByStatus = puits.stream()
+                .collect(Collectors.groupingBy(Puit::getStatus, Collectors.counting()));
+        return ResponseEntity.ok(countByStatus);
+    }
+
     @PostMapping
+    @CrossOrigin(origins = "http://localhost:3000")
     public ResponseEntity<?> createPuit(@RequestBody Puit puit) {
         try {
             // Validation des données
@@ -58,6 +82,20 @@ public class PuitController {
     public ResponseEntity<?> getPuitById(@PathVariable String id) {
         return puitRepository.findById(id)
                 .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{puitId}/current-phase")
+    public ResponseEntity<String> getCurrentPhase(@PathVariable String puitId) {
+        return puitRepository.findById(puitId)
+                .map(puit -> {
+                    String phase = puit.getCurrentPhase();
+                    if (phase != null) {
+                        return ResponseEntity.ok(phase);
+                    } else {
+                        return ResponseEntity.ok("Aucune phase disponible");
+                    }
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 

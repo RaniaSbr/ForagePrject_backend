@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ReportRepository extends JpaRepository<Report, Long> {
@@ -37,4 +38,10 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     // Méthode pour obtenir tous les rapports avec leurs relations essentielles
     @Query("SELECT r FROM Report r LEFT JOIN FETCH r.dailyCost LEFT JOIN FETCH r.puit")
     List<Report> findAllWithEssentialRelations();
+
+    // Méthode 1: Récupère directement la phase du rapport avec le plus grand ID
+    // pour un puit
+    @Query("SELECT r.phase FROM Report r WHERE r.puit.puitId = :puitId ORDER BY r.id DESC LIMIT 1")
+    Optional<String> findLatestPhaseByMaxId(@Param("puitId") String puitId);
+
 }

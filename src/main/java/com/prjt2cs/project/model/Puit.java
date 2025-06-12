@@ -40,6 +40,12 @@ public class Puit {
         this.reports = new ArrayList<>();
     }
 
+    @Transient
+    public String getCurrentPhase() {
+        Report latestReport = getLatestReport();
+        return latestReport != null ? latestReport.getPhase() : null;
+    }
+
     // Getters et Setters existants
     public String getPuitId() {
         return puitId;
