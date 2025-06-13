@@ -55,9 +55,9 @@ public class Report {
     @JsonBackReference
     private Puit puit;
 
-    @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "report", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference
-    private List<Operation> operations = new ArrayList<>();
+    private List<Operation> operations;
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "daily_cost_id")
@@ -202,6 +202,39 @@ public class Report {
 
     public void clearExcelFile() {
         this.excelFile = null;
+    }
+
+    @Column(name = "ANOMALIES", length = 2000)
+    private String anomalies;
+
+    @Column(name = "EXPERT_ANALYSIS", length = 2000)
+    private String expertAnalysis;
+
+    @Column(name = "EXPERT_RECOMMENDATIONS", length = 2000)
+    private String expertRecommendations;
+
+    public String getAnomalies() {
+        return anomalies;
+    }
+
+    public void setAnomalies(String anomalie) {
+        this.anomalies = anomalie;
+    }
+
+    public String getAnalysis() {
+        return expertAnalysis;
+    }
+
+    public void setAnalysis(String expertAnalysis) {
+        this.expertAnalysis = expertAnalysis;
+    }
+
+    public String getRecommendations() {
+        return expertRecommendations;
+    }
+
+    public void setRecommendations(String expertRecommendations) {
+        this.expertRecommendations = expertRecommendations;
     }
 
     // Méthode utilitaire pour obtenir l'ID du puit

@@ -7,6 +7,10 @@ import com.prjt2cs.project.repository.DailyCostRepository;
 import com.prjt2cs.project.repository.OperationRepository;
 import com.prjt2cs.project.repository.ReportRepository;
 
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders; // <--- Corrected import
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -51,7 +55,7 @@ public class HelloController {
     }
 
     // Endpoint to get operations of a specific report
-    @GetMapping("/reports/{id}/operations")
+    @GetMapping("/report/{id}/operations")
     public List<Operation> getOperationsByReportId(@PathVariable Long id) {
         Optional<Report> report = reportRepository.findById(id);
         if (report.isPresent()) {
@@ -81,5 +85,33 @@ public class HelloController {
             return report.get().getDailyCost();
         }
         return null; // Returns null if the report doesn't exist or has no daily cost
+    }
+
+    @GetMapping("/reports/{id}/download")
+    public ResponseEntity<?> downloadExcelFile(@PathVariable Long id) {
+        Optional<Report> optionalReport = reportRepository.findById(id);
+
+        if (optionalReport.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Report report = optionalReport.get();
+        byte[] fileData = report.getExcelFile();
+
+        if (fileData == null || fileData.length == 0) {
+            return ResponseEntity.noContent().build();
+        }
+
+        ByteArrayResource resource = new ByteArrayResource(fileData);
+
+        // Ensure you are using org.springframework.http.HttpHeaders here
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=rapport-" + report.getId() + ".xlsx");
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentLength(fileData.length)
+                .body(resource);
     }
 }

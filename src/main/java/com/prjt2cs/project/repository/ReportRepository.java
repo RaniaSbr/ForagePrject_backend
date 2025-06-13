@@ -15,6 +15,8 @@ import java.util.Optional;
 @Repository
 public interface ReportRepository extends JpaRepository<Report, Long> {
 
+    List<Report> findByPuit_PuitId(String puitId);
+
     // Méthode optimisée pour récupérer les rapports par puits avec leurs coûts
     @Query("SELECT r FROM Report r LEFT JOIN FETCH r.dailyCost LEFT JOIN FETCH r.puit WHERE r.puit.puitId = :puitId")
     List<Report> findByPuitIdWithDailyCost(@Param("puitId") String puitId);

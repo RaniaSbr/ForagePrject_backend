@@ -11,12 +11,15 @@ import com.prjt2cs.project.repository.PuitRepository;
 import com.prjt2cs.project.service.ExcelReader;
 import java.util.Base64;
 
+import java.util.Optional;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,6 +37,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/reports")
@@ -60,157 +64,170 @@ public class ReportUploadController {
         this.puitRepository = puitRepository; // NOUVEAU
     }
 
-    @PostMapping("/upload")
-    public ResponseEntity<String> createReportFromExcel(@RequestParam("file") MultipartFile file,
-            @RequestParam("puitId") String puitId) {
-
-        try {
-            // Copy file content to memory
-            Puit puit = puitRepository.findById(puitId)
-                    .orElseThrow(() -> new RuntimeException("Puit non trouvé avec l'ID: " + puitId));
-
-            // Enregistrer le fichier Excel dans le modèle Report
-            byte[] fileBytes = file.getBytes();
-
-            // Create a new report
-            Report report = new Report();
-            report.setExcelFile(fileBytes);
-            report.setDate(LocalDate.now());
-            // Read drilling hours (as in ExcelToReportLoader)
-            String drillHoursStr = excelReader.readCellRangeConcatenated(
-                    new ByteArrayInputStream(fileBytes), "BF", "BH", 6, 0);
-            try {
-                double drillH = (drillHoursStr != null && !drillHoursStr.trim().isEmpty())
-                        ? Double.parseDouble(drillHoursStr.trim())
-                        : 0.0;
-                report.setDrillingHours(drillH);
-            } catch (NumberFormatException e) {
-                report.setDrillingHours(0.0);
-            }
-
-            // Read depth
-            String depthStr = excelReader.readCellRangeConcatenated(
-                    new ByteArrayInputStream(fileBytes), "U", "Z", 6, 0);
-            try {
-                double depth = (depthStr != null && !depthStr.trim().isEmpty())
-                        ? Double.parseDouble(depthStr.trim())
-                        : 0.0;
-                report.setDepth(depth);
-            } catch (NumberFormatException e) {
-                report.setDepth(0.0);
-            }
-
-            // Read cost (TVD)
-            String costStr = excelReader.readCellRangeConcatenated(
-                    new ByteArrayInputStream(fileBytes), "AF", "AK", 6, 0);
-            try {
-                double cost = (costStr != null && !costStr.trim().isEmpty())
-                        ? Double.parseDouble(costStr.trim())
-                        : 0.0;
-                report.setTvd(cost);
-            } catch (NumberFormatException e) {
-                report.setTvd(0.0);
-            }
-
-            // Read PLANNED OPERATION
-            String plannedOpe1 = excelReader.readCellRangeConcatenated(
-                    new ByteArrayInputStream(fileBytes), "O", "BC", 59, 0);
-
-            String phase = excelReader.readCellRangeConcatenated(
-                    new ByteArrayInputStream(fileBytes), "M", "P", 10, 0);
-            report.setPhase(phase);
-            String plannedOpe2 = excelReader.readCellRangeConcatenated(
-                    new ByteArrayInputStream(fileBytes), "O", "BC", 58, 0);
-            String plannedOpe = plannedOpe1 + " " + plannedOpe2;
-
-            report.setPlannedOperation(plannedOpe);
-
-            // Read ACTUAL DAY
-            String dayStr = excelReader.readCellRangeConcatenated(
-                    new ByteArrayInputStream(fileBytes), "BQ", "BY", 62, 0);
-            try {
-                double day = (dayStr != null && !dayStr.trim().isEmpty())
-                        ? Double.parseDouble(dayStr.trim())
-                        : 0.0;
-                report.setDay(day);
-            } catch (NumberFormatException e) {
-                report.setDay(0.0);
-            }
-
-            // Read DRILLING PROGRESS
-            String drillProgressStr = excelReader.readCellRangeConcatenated(
-                    new ByteArrayInputStream(fileBytes), "AW", "BA", 6, 0);
-            try {
-                double drillProgress = (drillProgressStr != null && !drillProgressStr.trim().isEmpty())
-                        ? Double.parseDouble(drillProgressStr.trim())
-                        : 0.0;
-                report.setDrillingProgress(drillProgress);
-            } catch (NumberFormatException e) {
-                report.setDrillingProgress(0.0);
-            }
-
-            // Save report first to get its ID
-            Report savedReport = reportRepository.save(report);
-
-            // Create and add operations (from rows 22 to 43)// Dans
-
-            // PAR CETTE VERSION CORRIGÉE :
-
-            List<String> remarksList = new ArrayList<>();
-
-            for (int row = 46; row <= 56; row++) {
-                try {
-                    String rowRemark = excelReader.readCellRangeConcatenated(
-                            new ByteArrayInputStream(fileBytes), "B", "BG", row, 0);
-
-                    if (rowRemark != null && !rowRemark.trim().isEmpty()) {
-                        remarksList.add(rowRemark.trim());
-                    }
-                } catch (Exception e) {
-                    // Log error but continue processing
-                    logger.error("Error processing row {}: {}", row, e.getMessage());
-                }
-            }
-
-            // Set remarks - the entity will handle null/empty cases
-            report.setRemarks(remarksList.isEmpty() ? null : remarksList);
-            int operationsAdded = addOperationsToReport(fileBytes, savedReport);
-
-            // Add DailyCost
-            DailyCost dailyCost = addDailyCostToReport(fileBytes, savedReport);
-
-            // Re-save the report with all its operations
-            reportRepository.save(savedReport);
-
-            // Build response with additional debug info
-            StringBuilder responseBuilder = new StringBuilder();
-            responseBuilder.append("Report created successfully! ID: ").append(savedReport.getId())
-                    .append(", Date: ").append(savedReport.getDate())
-                    .append(", Drilling Hours: ").append(report.getDrillingHours())
-                    .append(", Operations added: ").append(operationsAdded)
-                    .append(", Planned operations: ").append(plannedOpe)
-                    .append(", Day: ").append(dayStr);
-
-            // Add DailyCost info
-            if (dailyCost != null) {
-                responseBuilder.append("\nDailyCost ID: ").append(dailyCost.getId())
-                        .append(", Name: ").append(dailyCost.getName())
-                        .append(", DrillingRig: ").append(dailyCost.getDrillingRig())
-                        .append(", MudLogging: ").append(dailyCost.getMudLogging());
-            } else {
-                responseBuilder.append("\nNo DailyCost created.");
-            }
-
-            responseBuilder.append(", Puit: ").append(puit.getPuitName())
-                    .append(" (ID: ").append(puit.getPuitId()).append(")");
-            return ResponseEntity.ok(responseBuilder.toString());
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error processing file: " + e.getMessage());
+    @GetMapping("/puit/{puitId}")
+    public ResponseEntity<List<Report>> getRapportsByPuit(@PathVariable String puitId) {
+        List<Report> rapports = reportRepository.findByPuit_PuitId(puitId);
+        if (rapports.isEmpty()) {
+            return ResponseEntity.noContent().build(); // aucun rapport trouvé
         }
+        return ResponseEntity.ok(rapports);
     }
+
+    // @PostMapping("/upload")
+    // public ResponseEntity<String> createReportFromExcel(@RequestParam("file")
+    // MultipartFile file,
+    // @RequestParam("puitId") String puitId) {
+
+    // try {
+    // // Copy file content to memory
+    // Puit puit = puitRepository.findById(puitId)
+    // .orElseThrow(() -> new RuntimeException("Puit non trouvé avec l'ID: " +
+    // puitId));
+
+    // // Enregistrer le fichier Excel dans le modèle Report
+    // byte[] fileBytes = file.getBytes();
+
+    // // Create a new report
+    // Report report = new Report();
+    // report.setExcelFile(fileBytes);
+    // report.setDate(LocalDate.now());
+    // // Read drilling hours (as in ExcelToReportLoader)
+    // String drillHoursStr = excelReader.readCellRangeConcatenated(
+    // new ByteArrayInputStream(fileBytes), "BF", "BH", 6, 0);
+    // try {
+    // double drillH = (drillHoursStr != null && !drillHoursStr.trim().isEmpty())
+    // ? Double.parseDouble(drillHoursStr.trim())
+    // : 0.0;
+    // report.setDrillingHours(drillH);
+    // } catch (NumberFormatException e) {
+    // report.setDrillingHours(0.0);
+    // }
+
+    // // Read depth
+    // String depthStr = excelReader.readCellRangeConcatenated(
+    // new ByteArrayInputStream(fileBytes), "U", "Z", 6, 0);
+    // try {
+    // double depth = (depthStr != null && !depthStr.trim().isEmpty())
+    // ? Double.parseDouble(depthStr.trim())
+    // : 0.0;
+    // report.setDepth(depth);
+    // } catch (NumberFormatException e) {
+    // report.setDepth(0.0);
+    // }
+
+    // // Read cost (TVD)
+    // String costStr = excelReader.readCellRangeConcatenated(
+    // new ByteArrayInputStream(fileBytes), "AF", "AK", 6, 0);
+    // try {
+    // double cost = (costStr != null && !costStr.trim().isEmpty())
+    // ? Double.parseDouble(costStr.trim())
+    // : 0.0;
+    // report.setTvd(cost);
+    // } catch (NumberFormatException e) {
+    // report.setTvd(0.0);
+    // }
+
+    // // Read PLANNED OPERATION
+    // String plannedOpe1 = excelReader.readCellRangeConcatenated(
+    // new ByteArrayInputStream(fileBytes), "O", "BC", 59, 0);
+
+    // String phase = excelReader.readCellRangeConcatenated(
+    // new ByteArrayInputStream(fileBytes), "M", "P", 10, 0);
+    // report.setPhase(phase);
+    // String plannedOpe2 = excelReader.readCellRangeConcatenated(
+    // new ByteArrayInputStream(fileBytes), "O", "BC", 58, 0);
+    // String plannedOpe = plannedOpe1 + " " + plannedOpe2;
+
+    // report.setPlannedOperation(plannedOpe);
+
+    // // Read ACTUAL DAY
+    // String dayStr = excelReader.readCellRangeConcatenated(
+    // new ByteArrayInputStream(fileBytes), "BQ", "BY", 62, 0);
+    // try {
+    // double day = (dayStr != null && !dayStr.trim().isEmpty())
+    // ? Double.parseDouble(dayStr.trim())
+    // : 0.0;
+    // report.setDay(day);
+    // } catch (NumberFormatException e) {
+    // report.setDay(0.0);
+    // }
+
+    // // Read DRILLING PROGRESS
+    // String drillProgressStr = excelReader.readCellRangeConcatenated(
+    // new ByteArrayInputStream(fileBytes), "AW", "BA", 6, 0);
+    // try {
+    // double drillProgress = (drillProgressStr != null &&
+    // !drillProgressStr.trim().isEmpty())
+    // ? Double.parseDouble(drillProgressStr.trim())
+    // : 0.0;
+    // report.setDrillingProgress(drillProgress);
+    // } catch (NumberFormatException e) {
+    // report.setDrillingProgress(0.0);
+    // }
+
+    // // Save report first to get its ID
+    // Report savedReport = reportRepository.save(report);
+
+    // // Create and add operations (from rows 22 to 43)// Dans
+
+    // // PAR CETTE VERSION CORRIGÉE :
+
+    // List<String> remarksList = new ArrayList<>();
+
+    // for (int row = 46; row <= 56; row++) {
+    // try {
+    // String rowRemark = excelReader.readCellRangeConcatenated(
+    // new ByteArrayInputStream(fileBytes), "B", "BG", row, 0);
+
+    // if (rowRemark != null && !rowRemark.trim().isEmpty()) {
+    // remarksList.add(rowRemark.trim());
+    // }
+    // } catch (Exception e) {
+    // // Log error but continue processing
+    // logger.error("Error processing row {}: {}", row, e.getMessage());
+    // }
+    // }
+
+    // // Set remarks - the entity will handle null/empty cases
+    // report.setRemarks(remarksList.isEmpty() ? null : remarksList);
+    // int operationsAdded = addOperationsToReport(fileBytes, savedReport);
+
+    // // Add DailyCost
+    // DailyCost dailyCost = addDailyCostToReport(fileBytes, savedReport);
+
+    // // Re-save the report with all its operations
+    // reportRepository.save(savedReport);
+
+    // // Build response with additional debug info
+    // StringBuilder responseBuilder = new StringBuilder();
+    // responseBuilder.append("Report created successfully! ID:
+    // ").append(savedReport.getId())
+    // .append(", Date: ").append(savedReport.getDate())
+    // .append(", Drilling Hours: ").append(report.getDrillingHours())
+    // .append(", Operations added: ").append(operationsAdded)
+    // .append(", Planned operations: ").append(plannedOpe)
+    // .append(", Day: ").append(dayStr);
+
+    // // Add DailyCost info
+    // if (dailyCost != null) {
+    // responseBuilder.append("\nDailyCost ID: ").append(dailyCost.getId())
+    // .append(", Name: ").append(dailyCost.getName())
+    // .append(", DrillingRig: ").append(dailyCost.getDrillingRig())
+    // .append(", MudLogging: ").append(dailyCost.getMudLogging());
+    // } else {
+    // responseBuilder.append("\nNo DailyCost created.");
+    // }
+
+    // responseBuilder.append(", Puit: ").append(puit.getPuitName())
+    // .append(" (ID: ").append(puit.getPuitId()).append(")");
+    // return ResponseEntity.ok(responseBuilder.toString());
+
+    // } catch (Exception e) {
+    // e.printStackTrace();
+    // return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+    // .body("Error processing file: " + e.getMessage());
+    // }
+    // }
 
     private int addOperationsToReport(byte[] fileBytes, Report report) {
         int operationsAdded = 0;
@@ -400,6 +417,21 @@ public class ReportUploadController {
      */
     private boolean tryReadDailyCostValues(byte[] fileBytes, DailyCost dailyCost, int sheetIndex) {
         return tryReadDailyCostValues(fileBytes, dailyCost, sheetIndex, "G");
+    }
+
+    @GetMapping("/{id}/operations")
+    public ResponseEntity<List<String>> getOperationsDescriptions(@PathVariable Long id) {
+        Optional<Report> reportOpt = reportRepository.findById(id);
+
+        if (reportOpt.isPresent()) {
+            Report report = reportOpt.get();
+            List<String> descriptions = report.getOperations().stream()
+                    .map(Operation::getDescription)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(descriptions);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     /**

@@ -97,6 +97,34 @@ public class PuitController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    // Endpoint pour modifier uniquement le statut d'un puit (accepte PATCH et PUT)
+    @RequestMapping(value = "/{id}/status", method = { RequestMethod.PATCH, RequestMethod.PUT })
+    public ResponseEntity<?> updatePuitStatus(@PathVariable String id, @RequestBody Map<String, String> statusUpdate) {
+        try {
+            String newStatus = statusUpdate.get("status");
+
+            // Validation du statut
+            if (newStatus == null || newStatus.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Le statut est obligatoire"));
+            }
+
+            return puitRepository.findById(id)
+                    .map(puit -> {
+                        puit.setStatus(newStatus.trim());
+                        Puit updatedPuit = puitRepository.save(puit);
+                        return ResponseEntity.ok(Map.of(
+                                "message", "Statut mis à jour avec succès",
+                                "puit", updatedPuit));
+                    })
+                    .orElse(ResponseEntity.notFound().build());
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "Erreur lors de la mise à jour du statut: " + e.getMessage()));
+        }
+    }
+
     // Endpoint pour mettre à jour un puit
     @PutMapping("/{id}")
     public ResponseEntity<?> updatePuit(@PathVariable String id, @RequestBody Puit puitDetails) {
