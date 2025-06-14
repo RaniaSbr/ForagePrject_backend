@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/previsions")
@@ -209,4 +210,22 @@ public class PrevisionController {
             return ResponseEntity.badRequest().body("Erreur : " + e.getMessage());
         }
     }
+
+    @GetMapping("/etat-par-phase/{puitId}/{phaseName}")
+    public ResponseEntity<PhaseStatus> getEtatParPhasePourPuitEtPhase(
+            @PathVariable String puitId,
+            @PathVariable String phaseName) {
+        try {
+            Optional<PhaseStatus> result = monitoringService.getEtatParPhaseParPuits(puitId)
+                    .stream()
+                    .filter(p -> p.getPhaseName().equalsIgnoreCase(phaseName))
+                    .findFirst();
+
+            return result.map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
 }
