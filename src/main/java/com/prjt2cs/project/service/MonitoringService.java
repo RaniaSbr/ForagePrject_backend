@@ -22,6 +22,7 @@ public class MonitoringService {
 
     // Version optimisée de l'état global par phase
     public List<PhaseStatus> getEtatParPhase() {
+
         List<PhaseStatus> result = new ArrayList<>();
         List<Report> allReports = reportRepository.findAllWithEssentialRelations();
 
@@ -32,6 +33,11 @@ public class MonitoringService {
             List<Report> reportsForPhase = allReports.stream()
                     .filter(r -> r.getPhase() != null && normalize(r.getPhase()).equals(normalize(phaseName)))
                     .collect(Collectors.toList());
+            double depthReel = reportsForPhase.stream()
+                    .filter(r -> r.getDay() != null && r.getDepth() != null)
+                    .max(Comparator.comparingInt(r -> r.getDay().intValue()))
+                    .map(Report::getDepth)
+                    .orElse(0.0);
 
             // Somme des coûts réels (total)
             double coutReel = sumDailyCostAttribute(reportsForPhase, DailyCost::getDailyCost);
@@ -67,7 +73,9 @@ public class MonitoringService {
                     : totalPhasePrevision / 9.0;
             double securityPrevu = totalPhasePrevision > 0 ? totalPhasePrevision / 9.0 : 0.0;
             double bitsPrevu = totalPhasePrevision > 0 ? totalPhasePrevision / 9.0 : 0.0;
-            // ******************************************************************************************
+            double depthPrevu = prevision.getDepth() != null ? prevision.getDepth() : 0.0;
+            System.out.println("Phase: " + phaseName + ", depthPrevu from DB: " + prevision.getDepth()
+                    + ", final value: " + depthPrevu); // ******************************************************************************************
 
             // Calcul du délai réel
             int delaiReel = reportsForPhase.stream()
@@ -79,10 +87,12 @@ public class MonitoringService {
 
             result.add(new PhaseStatus(
                     phaseName,
-                    prevision.getTotal() != null ? prevision.getTotal() : 0.0,
-                    coutReel,
-                    prevision.getNombreJours() != null ? prevision.getNombreJours() : 0,
-                    delaiReel,
+                    prevision.getTotal() != null ? prevision.getTotal() : 0.0, // coutPrevu
+                    coutReel, // coutReel
+                    depthPrevu, // depthPrevu
+                    depthReel, // depthReel (maintenant calculé correctement)
+                    prevision.getNombreJours() != null ? prevision.getNombreJours() : 0, // delaiPrevu
+                    delaiReel, // delaiReel
                     drillingActual, mudLoggingActual, cementingActual,
                     waterSupplyActual, drillingMudActual, accesoriesCasingActual,
                     casingTubingActual, securityActual, bitsActual,
@@ -138,7 +148,9 @@ public class MonitoringService {
             double casingTubingPrevu = totalPhasePrevision > 0 ? totalPhasePrevision / 9.0 : 0.0;
             double securityPrevu = totalPhasePrevision > 0 ? totalPhasePrevision / 9.0 : 0.0;
             double bitsPrevu = totalPhasePrevision > 0 ? totalPhasePrevision / 9.0 : 0.0;
-            // ******************************************************************************************
+            double depthPrevu = prevision.getDepth() != null ? prevision.getDepth() : 0.0;
+            System.out.println("Phase: " + phaseName + ", depthPrevu from DB: " + prevision.getDepth()
+                    + ", final value: " + depthPrevu); // ******************************************************************************************
 
             // Calcul du délai réel pour cette phase et ce puits
             int delaiReel = reportsForPhase.stream()
@@ -147,13 +159,20 @@ public class MonitoringService {
                     .mapToInt(day -> Math.max(1, day.intValue()))
                     .max()
                     .orElse(0);
+            double depthReel = reportsForPhase.stream()
+                    .filter(r -> r.getDay() != null && r.getDepth() != null)
+                    .max(Comparator.comparingInt(r -> r.getDay().intValue()))
+                    .map(Report::getDepth)
+                    .orElse(0.0);
 
             result.add(new PhaseStatus(
                     phaseName,
-                    prevision.getTotal() != null ? prevision.getTotal() : 0.0,
-                    coutReel,
-                    prevision.getNombreJours() != null ? prevision.getNombreJours() : 0,
-                    delaiReel,
+                    prevision.getTotal() != null ? prevision.getTotal() : 0.0, // coutPrevu
+                    coutReel, // coutReel
+                    depthPrevu, // depthPrevu
+                    depthReel, // depthReel
+                    prevision.getNombreJours() != null ? prevision.getNombreJours() : 0, // delaiPrevu
+                    delaiReel, // delaiReel
                     drillingActual, mudLoggingActual, cementingActual,
                     waterSupplyActual, drillingMudActual, accesoriesCasingActual,
                     casingTubingActual, securityActual, bitsActual,

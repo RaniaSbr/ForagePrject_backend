@@ -84,6 +84,17 @@ public class PrevisionController {
                         default -> throw new IllegalStateException("Index de phase inattendu: " + sheetIndex);
                     };
 
+                    int depthRow = switch (sheetIndex) {
+                        case 0 -> 2; // Feuille 0: colonne D, ligne 5
+                        case 1 -> 3; // Feuille 1: colonne D, ligne 9
+                        case 2 -> 4; // Feuille 2: colonne D, ligne 12
+                        case 3 -> 5; // Feuille 3: colonne D, ligne 16
+                        default -> throw new IllegalStateException("Index de phase inattendu: " + sheetIndex);
+                    };
+                    String depthValue = readCellFromFile(file, "B", depthRow, 5);
+                    Double depth = parseDoubleOrZero(depthValue);
+                    phase.setDepth(depth);
+
                     // DEBUG: Afficher les informations de lecture
                     System.out.println("=== DEBUG DÉLAI PHASE " + sheetIndex + " ===");
                     System.out.println("Lecture cellule: D" + delayRow + " de la feuille " + sheetIndex);

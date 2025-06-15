@@ -4,6 +4,8 @@ public class PhaseStatus {
     private String phaseName;
     private double coutPrevu;
     private double coutReel;
+    private double depthPrevu;
+    private Double depthReel; // Assuming depthReel is not provided, set to 0.0
     private int delaiPrevu;
     private int delaiReel;
     private boolean depassementCout;
@@ -47,6 +49,7 @@ public class PhaseStatus {
     private Double casingTubingPrevu;
     private Double securityPrevu;
     private Double bitsPrevu;
+    // New attributes for detailed costs
 
     // Depassement, Etat, and Couleur for detailed costs
     private boolean depassementDrillingCout;
@@ -86,7 +89,9 @@ public class PhaseStatus {
     private String couleurBitsCout;
 
     // Constructor - Updated to include prevision for detailed costs
-    public PhaseStatus(String phaseName, double coutPrevu, double coutReel, int delaiPrevu, int delaiReel,
+    public PhaseStatus(String phaseName, double coutPrevu, double coutReel, double depthPrevu, double depthReel,
+            int delaiPrevu,
+            int delaiReel,
             Double drillingActual, Double mudLoggingActual, Double cementingActual,
             Double waterSupplyActual, Double drillingMudActual, Double accesoriesCasingActual,
             Double casingTubingActual, Double securityActual, Double bitsActual,
@@ -98,7 +103,9 @@ public class PhaseStatus {
         this.phaseName = phaseName;
         this.coutPrevu = coutPrevu;
         this.coutReel = coutReel;
+        this.depthPrevu = depthPrevu;
         this.delaiPrevu = delaiPrevu;
+        this.depthReel = depthReel; // Assuming depth is not provided, set to 0.0
         this.delaiReel = delaiReel;
         this.depassementCout = coutReel > coutPrevu;
         this.depassementDelai = delaiReel > delaiPrevu;
@@ -204,6 +211,14 @@ public class PhaseStatus {
         return etatDelai;
     }
 
+    public Double getDepthReel() {
+        return depthReel;
+    }
+
+    public void setDepthReel(Double depthReel) {
+        this.depthReel = depthReel;
+    }
+
     public String getCouleurCout() {
         return couleurCout;
     }
@@ -256,6 +271,14 @@ public class PhaseStatus {
 
     public Double getMudLoggingPrevu() {
         return mudLoggingPrevu;
+    }
+
+    public Double getDepthPrevu() {
+        return depthPrevu;
+    }
+
+    public void setDepthPrevu(Double depthPrevu) {
+        this.depthPrevu = depthPrevu;
     }
 
     public Double getCementingPrevu() {

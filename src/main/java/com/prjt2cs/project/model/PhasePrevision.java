@@ -23,6 +23,7 @@ public class PhasePrevision {
     private Double security;
     private Double bits;
     private Double total;
+    private Double depth;
 
     private String phaseName;
     private Double wellHead;
@@ -42,6 +43,15 @@ public class PhasePrevision {
 
     public String getPhaseName() {
         return phaseName;
+    }
+
+    public Double setDepth(Double depth) {
+        this.depth = depth;
+        return this.depth;
+    }
+
+    public Double getDepth() {
+        return depth;
     }
 
     public void setPhaseName(String phaseName) {
