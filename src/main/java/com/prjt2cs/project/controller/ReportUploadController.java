@@ -42,11 +42,10 @@ public class ReportUploadController {
     private static final Logger logger = LoggerFactory.getLogger(ReportUploadController.class);
 
     private final ReportRepository reportRepository;
+    private final OperationRepository operationRepository;
     private final DailyCostRepository dailyCostRepository;
     private final PuitRepository puitRepository;
     private final ExcelReader excelReader;
-    private final OperationRepository operationRepository;
-
 
     public ReportUploadController(
             ReportRepository reportRepository,
@@ -56,14 +55,15 @@ public class ReportUploadController {
             PuitRepository puitRepository) { // NOUVEAU
         this.dailyCostRepository = dailyCostRepository;
         this.reportRepository = reportRepository;
+        this.operationRepository = operationRepository;
         this.excelReader = excelReader;
         this.puitRepository = puitRepository; // NOUVEAU
-        this.operationRepository = operationRepository;
     }
 
     @PostMapping("/upload")
     public ResponseEntity<String> createReportFromExcel(@RequestParam("file") MultipartFile file,
             @RequestParam("puitId") String puitId) {
+
         try {
             // Copy file content to memory
             Puit puit = puitRepository.findById(puitId)
@@ -336,12 +336,11 @@ public class ReportUploadController {
             // Log workbook structure for debugging
             int numSheets = 0;
             try (InputStream is = new ByteArrayInputStream(fileBytes)) {
-                try (Workbook workbook = new XSSFWorkbook(is)) {
-                    numSheets = workbook.getNumberOfSheets();
-                    System.out.println("Excel file has " + numSheets + " sheets");
-                    for (int i = 0; i < numSheets; i++) {
-                        System.out.println("Sheet " + i + ": " + workbook.getSheetName(i));
-                    }
+                Workbook workbook = new XSSFWorkbook(is);
+                numSheets = workbook.getNumberOfSheets();
+                System.out.println("Excel file has " + numSheets + " sheets");
+                for (int i = 0; i < numSheets; i++) {
+                    System.out.println("Sheet " + i + ": " + workbook.getSheetName(i));
                 }
             } catch (Exception e) {
                 System.err.println("Error checking workbook structure: " + e.getMessage());
@@ -598,7 +597,8 @@ public class ReportUploadController {
             List<Map<String, Object>> operations = extractOperations(fileBytes);
 
             // Extraire les coûts quotidiens
-            Map<String, Object> dailyCostData = extractDailyCost(fileBytes);
+            Map<String, Object> dailyCostData = extractDailyCostEx(fileBytes);
+            // hilaw
 
             // Extraire les remarques
             List<String> remarks = extractRemarks(fileBytes);
@@ -621,62 +621,84 @@ public class ReportUploadController {
     @PostMapping("/confirm")
     public ResponseEntity<String> confirmAndSaveReport(@RequestBody Map<String, Object> confirmData) {
         try {
-            // Récupérer les données du fichier
-            try {
-                // Récupérer l'ID du puit depuis les données confirmées
-                String puitId = (String) confirmData.get("puitId");
-                if (puitId == null || puitId.trim().isEmpty()) {
-                    return ResponseEntity.badRequest().body("ID du puit manquant");
-                }
+            // Debug: Afficher les données reçues
+            logger.info("Données reçues pour confirmation: {}", confirmData);
 
-                // Vérifier que le puit existe
-                Puit puit = puitRepository.findById(puitId)
-                        .orElseThrow(() -> new RuntimeException("Puit non trouvé avec l'ID: " + puitId));
-
-                String fileDataBase64 = (String) confirmData.get("fileData");
-                byte[] fileBytes = Base64.getDecoder().decode(fileDataBase64);
-
-                // Créer le rapport avec les données modifiées
-                Report report = new Report();
-                report.setPuit(puit); // ASSOCIER LE PUIT
-
-                report.setExcelFile(fileBytes);
-                report.setDate(LocalDate.now());
-
-                // Utiliser les données modifiées du frontend
-                Map<String, Object> reportData = (Map<String, Object>) confirmData.get("report");
-                report.setDrillingHours(((Number) reportData.get("drillingHours")).doubleValue());
-                report.setDepth(((Number) reportData.get("depth")).doubleValue());
-                report.setTvd(((Number) reportData.get("tvd")).doubleValue());
-                report.setPhase((String) reportData.get("phase"));
-                report.setPlannedOperation((String) reportData.get("plannedOperation"));
-                report.setDay(((Number) reportData.get("day")).doubleValue());
-                report.setDrillingProgress(((Number) reportData.get("drillingProgress")).doubleValue());
-
-                // Remarques
-                List<String> remarks = (List<String>) confirmData.get("remarks");
-                report.setRemarks(remarks);
-
-                // Sauvegarder le rapport
-                Report savedReport = reportRepository.save(report);
-
-                // Sauvegarder les opérations modifiées
-                List<Map<String, Object>> operationsData = (List<Map<String, Object>>) confirmData.get("operations");
-                saveOperations(operationsData, savedReport);
-
-                // Sauvegarder les coûts quotidiens modifiés
-                Map<String, Object> dailyCostData = (Map<String, Object>) confirmData.get("dailyCost");
-                saveDailyCost(dailyCostData, savedReport);
-
-                return ResponseEntity.ok("Rapport sauvegardé avec succès! ID: " + savedReport.getId());
-
-            } catch (Exception e) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body("Erreur lors de la sauvegarde: " + e.getMessage());
+            // Récupérer l'ID du puit depuis les données confirmées
+            String puitId = (String) confirmData.get("puitId");
+            if (puitId == null || puitId.trim().isEmpty()) {
+                logger.error("ID du puit manquant dans les données: {}", confirmData.keySet());
+                return ResponseEntity.badRequest().body("ID du puit manquant");
             }
+
+            // Vérifier que le puit existe
+            Puit puit = puitRepository.findById(puitId)
+                    .orElseThrow(() -> new RuntimeException("Puit non trouvé avec l'ID: " + puitId));
+
+            String fileDataBase64 = (String) confirmData.get("fileData");
+            if (fileDataBase64 == null || fileDataBase64.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Données du fichier manquantes");
+            }
+
+            byte[] fileBytes = Base64.getDecoder().decode(fileDataBase64);
+
+            // Créer le rapport avec les données modifiées
+            Report report = new Report();
+            report.setPuit(puit); // ASSOCIER LE PUIT
+            report.setExcelFile(fileBytes);
+            report.setDate(LocalDate.now());
+
+            // Utiliser les données modifiées du frontend avec vérifications
+            Map<String, Object> reportData = (Map<String, Object>) confirmData.get("report");
+            if (reportData == null) {
+                return ResponseEntity.badRequest().body("Données du rapport manquantes");
+            }
+
+            // Debug: Afficher les données du rapport
+            logger.info("Données du rapport: {}", reportData);
+
+            // Utiliser des conversions sécurisées
+            report.setDrillingHours(safeDoubleValue(reportData.get("drillingHours")));
+            report.setDepth(safeDoubleValue(reportData.get("depth")));
+            report.setTvd(safeDoubleValue(reportData.get("tvd")));
+            report.setPhase(safeStringValue(reportData.get("phase")));
+            report.setPlannedOperation(safeStringValue(reportData.get("plannedOperation")));
+            report.setDay(safeDoubleValue(reportData.get("day")));
+            report.setDrillingProgress(safeDoubleValue(reportData.get("drillingProgress")));
+
+            // Debug: Vérifier les valeurs assignées
+            logger.info("Valeurs assignées au rapport - DrillingHours: {}, Depth: {}, TVD: {}",
+                    report.getDrillingHours(), report.getDepth(), report.getTvd());
+
+            // Remarques
+            List<String> remarks = (List<String>) confirmData.get("remarks");
+            report.setRemarks(remarks);
+
+            // Sauvegarder le rapport
+            Report savedReport = reportRepository.save(report);
+            logger.info("Rapport sauvegardé avec ID: {}", savedReport.getId());
+
+            // Sauvegarder les opérations modifiées
+            List<Map<String, Object>> operationsData = (List<Map<String, Object>>) confirmData.get("operations");
+            if (operationsData != null) {
+                int operationsSaved = saveOperations(operationsData, savedReport);
+                logger.info("Nombre d'opérations sauvegardées: {}", operationsSaved);
+            }
+
+            // Sauvegarder les coûts quotidiens modifiés
+            Map<String, Object> dailyCostData = (Map<String, Object>) confirmData.get("dailyCost");
+            if (dailyCostData != null) {
+                DailyCost savedDailyCost = saveDailyCost(dailyCostData, savedReport);
+                logger.info("DailyCost sauvegardé avec ID: {}",
+                        savedDailyCost != null ? savedDailyCost.getId() : "null");
+            }
+
+            return ResponseEntity.ok("Rapport sauvegardé avec succès! ID: " + savedReport.getId());
+
         } catch (Exception e) {
+            logger.error("Erreur lors de la sauvegarde: ", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erreur lors de la confirmation: " + e.getMessage());
+                    .body("Erreur lors de la sauvegarde: " + e.getMessage());
         }
     }
 
@@ -725,47 +747,161 @@ public class ReportUploadController {
         return operations;
     }
 
+    private Map<String, Object> extractDailyCostEx(byte[] fileBytes) {
+        Map<String, Object> costData = new HashMap<>();
+
+        // Initialiser toutes les valeurs à 0.0 par défaut
+        costData.put("drillingRig", 0.0);
+        costData.put("mudLogging", 0.0);
+        costData.put("downwholeTools", 0.0);
+        costData.put("drillingMud", 0.0);
+        costData.put("solidControl", 0.0);
+        costData.put("electricServices", 0.0);
+        costData.put("bits", 0.0);
+        costData.put("casing", 0.0);
+        costData.put("accesoriesCasing", 0.0);
+        costData.put("casingTubing", 0.0);
+        costData.put("cementing", 0.0);
+        costData.put("rigSupervision", 0.0);
+        costData.put("communications", 0.0);
+        costData.put("waterSupply", 0.0);
+        costData.put("waterServices", 0.0);
+        costData.put("security", 0.0);
+        costData.put("dailyCost", 0.0);
+
+        String column = "G"; // Colonne G uniquement
+        Integer sheetIndex = 1; // Feuille 1 uniquement
+
+        try {
+            logger.info("Lecture des données sur feuille {} colonne {}", sheetIndex, column);
+
+            // Lire TOUS les champs pour cette combinaison colonne/feuille
+            Map<String, Object> tempCostData = new HashMap<>();
+
+            tempCostData.put("drillingRig", evaluateCell(fileBytes, column, 12, sheetIndex));
+            tempCostData.put("mudLogging", evaluateCell(fileBytes, column, 17, sheetIndex));
+            tempCostData.put("downwholeTools", evaluateCell(fileBytes, column, 21, sheetIndex));
+            tempCostData.put("drillingMud", evaluateCell(fileBytes, column, 26, sheetIndex));
+            tempCostData.put("solidControl", evaluateCell(fileBytes, column, 31, sheetIndex));
+            tempCostData.put("electricServices", evaluateCell(fileBytes, column, 37, sheetIndex));
+            tempCostData.put("bits", evaluateCell(fileBytes, column, 43, sheetIndex));
+            tempCostData.put("casing", evaluateCell(fileBytes, column, 46, sheetIndex));
+            tempCostData.put("accesoriesCasing", evaluateCell(fileBytes, column, 51, sheetIndex));
+            tempCostData.put("casingTubing", evaluateCell(fileBytes, column, 55, sheetIndex));
+            tempCostData.put("cementing", evaluateCell(fileBytes, column, 63, sheetIndex));
+            tempCostData.put("rigSupervision", evaluateCell(fileBytes, column, 68, sheetIndex));
+            tempCostData.put("communications", evaluateCell(fileBytes, column, 73, sheetIndex));
+            tempCostData.put("waterSupply", evaluateCell(fileBytes, column, 77, sheetIndex));
+            tempCostData.put("waterServices", evaluateCell(fileBytes, column, 80, sheetIndex));
+            tempCostData.put("security", evaluateCell(fileBytes, column, 84, sheetIndex));
+            tempCostData.put("dailyCost", evaluateCell(fileBytes, column, 86, sheetIndex));
+
+            // Vérifier si cette combinaison a donné des résultats
+            boolean hasValidData = tempCostData.values().stream()
+                    .anyMatch(value -> value != null && ((Double) value) > 0.0);
+
+            if (hasValidData) {
+                logger.info("Données valides trouvées sur feuille {} colonne {}", sheetIndex, column);
+
+                // Afficher les valeurs trouvées pour debug
+                tempCostData.forEach((key, value) -> {
+                    if (value != null && ((Double) value) > 0.0) {
+                        logger.info("  {}: {}", key, value);
+                    }
+                });
+
+                // Copier toutes les valeurs trouvées
+                costData.putAll(tempCostData);
+            } else {
+                logger.warn("Aucune donnée valide trouvée sur feuille {} colonne {}", sheetIndex, column);
+            }
+
+        } catch (Exception e) {
+            logger.error("Erreur lors de la lecture des données: {}", e.getMessage());
+        }
+
+        return costData;
+    }
+
     private Map<String, Object> extractDailyCost(byte[] fileBytes) {
         Map<String, Object> costData = new HashMap<>();
 
-        // Essayer différentes feuilles et colonnes
-        int numSheets = 0;
-        try (InputStream is = new ByteArrayInputStream(fileBytes)) {
-            Workbook workbook = new XSSFWorkbook(is);
-            numSheets = workbook.getNumberOfSheets();
-        } catch (Exception e) {
-            logger.error("Erreur lecture structure Excel: {}", e.getMessage());
-        }
+        // Initialiser toutes les valeurs à 0.0 par défaut
+        costData.put("drillingRig", 0.0);
+        costData.put("mudLogging", 0.0);
+        costData.put("downwholeTools", 0.0);
+        costData.put("drillingMud", 0.0);
+        costData.put("solidControl", 0.0);
+        costData.put("electricServices", 0.0);
+        costData.put("bits", 0.0);
+        costData.put("casing", 0.0);
+        costData.put("accesoriesCasing", 0.0);
+        costData.put("casingTubing", 0.0);
+        costData.put("cementing", 0.0);
+        costData.put("rigSupervision", 0.0);
+        costData.put("communications", 0.0);
+        costData.put("waterSupply", 0.0);
+        costData.put("waterServices", 0.0);
+        costData.put("security", 0.0);
+        costData.put("dailyCost", 0.0);
 
-        // Essayer sheet 1 puis sheet 0, colonne G puis F
-        String[] columns = { "G", "F" };
-        int[] sheets = numSheets > 1 ? new int[] { 1, 0 } : new int[] { 0 };
+        try (InputStream is = new ByteArrayInputStream(fileBytes);
+                Workbook workbook = new XSSFWorkbook(is)) {
 
-        for (int sheetIndex : sheets) {
-            for (String column : columns) {
-                costData.put("drillingRig", evaluateCell(fileBytes, column, 12, sheetIndex));
-                costData.put("mudLogging", evaluateCell(fileBytes, column, 17, sheetIndex));
-                costData.put("downwholeTools", evaluateCell(fileBytes, column, 21, sheetIndex));
-                costData.put("drillingMud", evaluateCell(fileBytes, column, 26, sheetIndex));
-                costData.put("solidControl", evaluateCell(fileBytes, column, 31, sheetIndex));
-                costData.put("electricServices", evaluateCell(fileBytes, column, 37, sheetIndex));
-                costData.put("bits", evaluateCell(fileBytes, column, 43, sheetIndex));
-                costData.put("casing", evaluateCell(fileBytes, column, 46, sheetIndex));
-                costData.put("accesoriesCasing", evaluateCell(fileBytes, column, 51, sheetIndex));
-                costData.put("casingTubing", evaluateCell(fileBytes, column, 55, sheetIndex));
-                costData.put("cementing", evaluateCell(fileBytes, column, 63, sheetIndex));
-                costData.put("rigSupervision", evaluateCell(fileBytes, column, 68, sheetIndex));
-                costData.put("communications", evaluateCell(fileBytes, column, 73, sheetIndex));
-                costData.put("waterSupply", evaluateCell(fileBytes, column, 77, sheetIndex));
-                costData.put("waterServices", evaluateCell(fileBytes, column, 80, sheetIndex));
-                costData.put("security", evaluateCell(fileBytes, column, 84, sheetIndex));
-                costData.put("dailyCost", evaluateCell(fileBytes, column, 86, sheetIndex));
+            // Essayer chaque feuille
+            for (int sheetIndex = 0; sheetIndex < workbook.getNumberOfSheets(); sheetIndex++) {
+                logger.info("Tentative d'extraction des coûts depuis la feuille {}", sheetIndex);
 
-                // Si au moins une valeur trouvée, retourner
-                if (costData.values().stream().anyMatch(v -> ((Double) v) > 0)) {
-                    return costData;
+                // Essayer différentes colonnes
+                for (String column : new String[] { "G", "F", "E" }) {
+                    logger.info("Essai colonne {} sur feuille {}", column, sheetIndex);
+
+                    // Lire TOUS les champs pour cette combinaison colonne/feuille
+                    Map<String, Object> tempCostData = new HashMap<>();
+
+                    tempCostData.put("drillingRig", evaluateCell(fileBytes, column, 12, sheetIndex));
+                    tempCostData.put("mudLogging", evaluateCell(fileBytes, column, 17, sheetIndex));
+                    tempCostData.put("downwholeTools", evaluateCell(fileBytes, column, 21, sheetIndex));
+                    tempCostData.put("drillingMud", evaluateCell(fileBytes, column, 26, sheetIndex));
+                    tempCostData.put("solidControl", evaluateCell(fileBytes, column, 31, sheetIndex));
+                    tempCostData.put("electricServices", evaluateCell(fileBytes, column, 37, sheetIndex));
+                    tempCostData.put("bits", evaluateCell(fileBytes, column, 43, sheetIndex));
+                    tempCostData.put("casing", evaluateCell(fileBytes, column, 46, sheetIndex));
+                    tempCostData.put("accesoriesCasing", evaluateCell(fileBytes, column, 51, sheetIndex));
+                    tempCostData.put("casingTubing", evaluateCell(fileBytes, column, 55, sheetIndex));
+                    tempCostData.put("cementing", evaluateCell(fileBytes, column, 63, sheetIndex));
+                    tempCostData.put("rigSupervision", evaluateCell(fileBytes, column, 68, sheetIndex));
+                    tempCostData.put("communications", evaluateCell(fileBytes, column, 73, sheetIndex));
+                    tempCostData.put("waterSupply", evaluateCell(fileBytes, column, 77, sheetIndex));
+                    tempCostData.put("waterServices", evaluateCell(fileBytes, column, 80, sheetIndex));
+                    tempCostData.put("security", evaluateCell(fileBytes, column, 84, sheetIndex));
+                    tempCostData.put("dailyCost", evaluateCell(fileBytes, column, 86, sheetIndex));
+
+                    // Vérifier si cette combinaison a donné des résultats
+                    boolean hasValidData = tempCostData.values().stream()
+                            .anyMatch(value -> ((Double) value) > 0.0);
+
+                    if (hasValidData) {
+                        logger.info("Données valides trouvées sur feuille {} colonne {}", sheetIndex, column);
+
+                        // Afficher les valeurs trouvées pour debug
+                        tempCostData.forEach((key, value) -> {
+                            if (((Double) value) > 0.0) {
+                                logger.info("  {}: {}", key, value);
+                            }
+                        });
+
+                        // Copier toutes les valeurs trouvées
+                        costData.putAll(tempCostData);
+                        return costData; // Retourner avec TOUTES les données de cette combinaison
+                    }
                 }
             }
+
+            logger.warn("Aucune donnée de coût valide trouvée dans le fichier Excel");
+
+        } catch (Exception e) {
+            logger.error("Erreur lors de l'extraction des coûts", e);
         }
 
         return costData;
@@ -787,67 +923,149 @@ public class ReportUploadController {
         return remarksList;
     }
 
-    private void saveOperations(List<Map<String, Object>> operationsData, Report report) {
+    private DailyCost saveDailyCost(Map<String, Object> dailyCostData, Report report) {
+        try {
+            logger.info("Sauvegarde DailyCost avec données: {}", dailyCostData);
+
+            DailyCost dailyCost = new DailyCost();
+            dailyCost.setName("Daily Cost for " + report.getDate());
+
+            // Utiliser une méthode helper pour convertir les valeurs de manière sécurisée
+            dailyCost.setDrillingRig(safeDoubleValue(dailyCostData.get("drillingRig")));
+            dailyCost.setMudLogging(safeDoubleValue(dailyCostData.get("mudLogging")));
+            dailyCost.setDownwholeTools(safeDoubleValue(dailyCostData.get("downwholeTools")));
+            dailyCost.setDrillingMud(safeDoubleValue(dailyCostData.get("drillingMud")));
+            dailyCost.setSolidControl(safeDoubleValue(dailyCostData.get("solidControl")));
+            dailyCost.setElectricServices(safeDoubleValue(dailyCostData.get("electricServices")));
+            dailyCost.setBits(safeDoubleValue(dailyCostData.get("bits")));
+            dailyCost.setCasing(safeDoubleValue(dailyCostData.get("casing")));
+            dailyCost.setAccesoriesCasing(safeDoubleValue(dailyCostData.get("accesoriesCasing")));
+            dailyCost.setCasingTubing(safeDoubleValue(dailyCostData.get("casingTubing")));
+            dailyCost.setCementing(safeDoubleValue(dailyCostData.get("cementing")));
+            dailyCost.setRigSupervision(safeDoubleValue(dailyCostData.get("rigSupervision")));
+            dailyCost.setCommunications(safeDoubleValue(dailyCostData.get("communications")));
+            dailyCost.setWaterSupply(safeDoubleValue(dailyCostData.get("waterSupply")));
+            dailyCost.setWaterServices(safeDoubleValue(dailyCostData.get("waterServices")));
+            dailyCost.setSecurity(safeDoubleValue(dailyCostData.get("security")));
+            dailyCost.setDailyCost(safeDoubleValue(dailyCostData.get("dailyCost")));
+
+            dailyCost.setReport(report);
+            report.setDailyCost(dailyCost); // Important: Associer dans les deux sens
+
+            DailyCost savedDailyCost = dailyCostRepository.save(dailyCost);
+            logger.info("DailyCost sauvegardé - ID: {}, DrillingRig: {}, MudLogging: {}",
+                    savedDailyCost.getId(), savedDailyCost.getDrillingRig(), savedDailyCost.getMudLogging());
+
+            return savedDailyCost;
+        } catch (Exception e) {
+            logger.error("Erreur lors de la sauvegarde du DailyCost: ", e);
+            return null;
+        }
+    }
+
+    // Méthode helper pour convertir de manière sécurisée
+    private double safeDoubleValue(Object value) {
+        if (value == null) {
+            logger.debug("Valeur null reçue pour conversion en double");
+            return 0.0;
+        }
+
+        if (value instanceof Number) {
+            double result = ((Number) value).doubleValue();
+            logger.debug("Conversion Number vers double: {} -> {}", value, result);
+            return result;
+        }
+
+        if (value instanceof String) {
+            try {
+                String stringValue = ((String) value).trim();
+                if (stringValue.isEmpty()) {
+                    logger.debug("String vide reçue pour conversion en double");
+                    return 0.0;
+                }
+                // Gérer les virgules comme séparateurs décimaux
+                stringValue = stringValue.replace(',', '.');
+                double result = Double.parseDouble(stringValue);
+                logger.debug("Conversion String vers double: '{}' -> {}", value, result);
+                return result;
+            } catch (NumberFormatException e) {
+                logger.warn("Impossible de convertir la valeur string en double: '{}'", value);
+                return 0.0;
+            }
+        }
+
+        logger.warn("Type de valeur non supporté pour la conversion en double: {} (type: {})",
+                value, value.getClass().getSimpleName());
+        return 0.0;
+    }
+
+    // Version sécurisée de saveOperations
+    private int saveOperations(List<Map<String, Object>> operationsData, Report report) {
+        int savedCount = 0;
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("H:mm");
 
-        for (Map<String, Object> opData : operationsData) {
-            Operation op = new Operation();
-            op.setCode((String) opData.get("code"));
-
-            // Parse times
+        for (int i = 0; i < operationsData.size(); i++) {
+            Map<String, Object> opData = operationsData.get(i);
             try {
-                String startTimeStr = (String) opData.get("startTime");
-                op.setStartTime(LocalTime.parse(startTimeStr.trim()));
+                logger.debug("Sauvegarde opération {}: {}", i, opData);
 
-                String endTimeStr = (String) opData.get("endTime");
-                if (endTimeStr != null && !endTimeStr.trim().isEmpty()) {
+                Operation op = new Operation();
+
+                // Gérer le code de manière sécurisée
+                String code = safeStringValue(opData.get("code"));
+                op.setCode(code.isEmpty() ? "OP-" + (i + 1) : code);
+
+                // Parse times
+                String startTimeStr = safeStringValue(opData.get("startTime"));
+                if (startTimeStr.isEmpty()) {
+                    logger.warn("StartTime manquant pour l'opération {}, ignorée", i);
+                    continue;
+                }
+
+                op.setStartTime(LocalTime.parse(startTimeStr));
+
+                String endTimeStr = safeStringValue(opData.get("endTime"));
+                if (!endTimeStr.isEmpty()) {
                     if (endTimeStr.equals("24:00")) {
                         op.setEndTime(LocalTime.of(0, 0));
                     } else {
-                        op.setEndTime(LocalTime.parse(endTimeStr.trim()));
+                        op.setEndTime(LocalTime.parse(endTimeStr));
                     }
                 } else {
                     op.setEndTime(op.getStartTime().plusHours(1));
                 }
+
+                // Gérer la description de manière sécurisée
+                op.setDescription(safeStringValue(opData.get("description")));
+
+                // Utiliser safeDoubleValue pour les valeurs numériques
+                op.setInitialDepth(safeDoubleValue(opData.get("initialDepth")));
+                op.setFinalDepth(safeDoubleValue(opData.get("finalDepth")));
+
+                // Gérer le rate de manière sécurisée
+                op.setRate(safeStringValue(opData.get("rate")));
+
+                op.setDate(report.getDate());
+                op.setReport(report);
+
+                Operation savedOp = operationRepository.save(op);
+                logger.debug("Opération sauvegardée avec ID: {}", savedOp.getId());
+                savedCount++;
+
             } catch (Exception e) {
-                logger.error("Erreur parsing time: {}", e.getMessage());
-                continue;
+                logger.error("Erreur lors de la sauvegarde de l'opération {}: {}", i, e.getMessage());
+                // Continuer avec l'opération suivante
             }
-
-            op.setDescription((String) opData.get("description"));
-            op.setInitialDepth(((Number) opData.get("initialDepth")).doubleValue());
-            op.setFinalDepth(((Number) opData.get("finalDepth")).doubleValue());
-            op.setRate((String) opData.get("rate"));
-            op.setDate(report.getDate());
-            op.setReport(report);
-
-            operationRepository.save(op);
         }
+        return savedCount;
     }
 
-    private void saveDailyCost(Map<String, Object> dailyCostData, Report report) {
-        DailyCost dailyCost = new DailyCost();
-        dailyCost.setName("Daily Cost for " + report.getDate());
-
-        dailyCost.setDrillingRig(((Number) dailyCostData.get("drillingRig")).doubleValue());
-        dailyCost.setMudLogging(((Number) dailyCostData.get("mudLogging")).doubleValue());
-        dailyCost.setDownwholeTools(((Number) dailyCostData.get("downwholeTools")).doubleValue());
-        dailyCost.setDrillingMud(((Number) dailyCostData.get("drillingMud")).doubleValue());
-        dailyCost.setSolidControl(((Number) dailyCostData.get("solidControl")).doubleValue());
-        dailyCost.setElectricServices(((Number) dailyCostData.get("electricServices")).doubleValue());
-        dailyCost.setBits(((Number) dailyCostData.get("bits")).doubleValue());
-        dailyCost.setCasing(((Number) dailyCostData.get("casing")).doubleValue());
-        dailyCost.setAccesoriesCasing(((Number) dailyCostData.get("accesoriesCasing")).doubleValue());
-        dailyCost.setCasingTubing(((Number) dailyCostData.get("casingTubing")).doubleValue());
-        dailyCost.setCementing(((Number) dailyCostData.get("cementing")).doubleValue());
-        dailyCost.setRigSupervision(((Number) dailyCostData.get("rigSupervision")).doubleValue());
-        dailyCost.setCommunications(((Number) dailyCostData.get("communications")).doubleValue());
-        dailyCost.setWaterSupply(((Number) dailyCostData.get("waterSupply")).doubleValue());
-        dailyCost.setWaterServices(((Number) dailyCostData.get("waterServices")).doubleValue());
-        dailyCost.setSecurity(((Number) dailyCostData.get("security")).doubleValue());
-        dailyCost.setDailyCost(((Number) dailyCostData.get("dailyCost")).doubleValue());
-
-        dailyCost.setReport(report);
-        dailyCostRepository.save(dailyCost);
+    // Méthode helper pour les String
+    private String safeStringValue(Object value) {
+        if (value == null) {
+            return "";
+        }
+        return value.toString().trim();
     }
+
 }

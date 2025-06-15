@@ -65,6 +65,7 @@ private ReportDTO convertToDto(Report report) {
     dto.setAnomalies(report.getAnomalies());
     dto.setAnalysis(report.getAnalysis());
     dto.setRecommendations(report.getRecommendations());
+    dto.setStatus(report.getStatus());
     dto.setTvd(report.getTvd());
     dto.setDrillingProgress(report.getDrillingProgress());
     dto.setDrillingHours(report.getDrillingHours());
@@ -139,23 +140,31 @@ private ReportDTO convertToDto(Report report) {
         }
 
 
-    @PatchMapping("/reports/{id}/review")
-    public ResponseEntity<Report> submitReview(
-        @PathVariable Long id,
-        @RequestBody Map<String, String> payload) {
-            
-        String expertAnalysis = payload.get("expertAnalysis");
-        String expertRecommendations = payload.get("expertRecommendations");
-
-        Report report = reportRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Rapport introuvable"));
-
-        report.setAnalysis(expertAnalysis);
-        report.setRecommendations(expertRecommendations);
-        reportRepository.save(report);
-
-        return ResponseEntity.ok(report);
-    }
+        @PatchMapping("/reports/{id}/review")
+        public ResponseEntity<Report> submitReview(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> payload) {
+                
+            String expertAnalysis = payload.get("expertAnalysis");
+            String expertRecommendations = payload.get("expertRecommendations");
+        
+            Report report = reportRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Rapport introuvable"));
+        
+            report.setAnalysis(expertAnalysis);
+            report.setRecommendations(expertRecommendations);
+        
+            // ✅ Mise à jour du statut
+            if (expertAnalysis != null && !expertAnalysis.isBlank() &&
+                expertRecommendations != null && !expertRecommendations.isBlank()) {
+                report.setStatus("Complété");
+            }
+        
+            reportRepository.save(report);
+        
+            return ResponseEntity.ok(report);
+        }
+        
     @GetMapping("/reports/{id}/download")
     public ResponseEntity<?> downloadExcelFile(@PathVariable Long id) {
         Optional<Report> optionalReport = reportRepository.findById(id);

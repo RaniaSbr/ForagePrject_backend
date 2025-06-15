@@ -17,6 +17,7 @@ public class ReportDTO {
     private String anomalies;
     private String analysis;
     private String recommendations;
+    private String status;
     private Double tvd;
     private Double drillingProgress;
     private Double drillingHours;
@@ -96,6 +97,14 @@ public class ReportDTO {
         this.recommendations = recommendations;
     }
 
+    public String getStatus() {
+        return status;
+    }
+    
+    public void setStatus(String status) {
+        this.status = status;
+    }
+    
     public Double getTvd() {
         return tvd;
     }
