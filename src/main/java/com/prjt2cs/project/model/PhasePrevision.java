@@ -13,23 +13,23 @@ public class PhasePrevision {
     @Id
     @Column(length = 10)
     private String phaseId; // ex : "26''", "16''", "12’’ 1/4", "8’’ 1/2"
-    private String phaseName;
-
     private Double drilling;
     private Double mudLogging;
     private Double cementing;
     private Double waterSupply;
-    private Double wellHead;
-    private Double casingTubing;
-    private Double casingAccessoire;
-    private Double runCasing;
-    private Double drillingBit;
-    private Double corring;
     private Double drillingMud;
+    private Double accesoriesCasing;
+    private Double casingTubing;
+    private Double security;
+    private Double bits;
+    private Double total;
+
+    private String phaseName;
+    private Double wellHead;
+    private Double runCasing;
+    private Double corring;
     private Double logging;
     private Double testing;
-    private Double securite;
-    private Double total;
 
     private Integer nombreJours; // délai en jours
 
@@ -104,12 +104,12 @@ public class PhasePrevision {
         this.casingTubing = casingTubing;
     }
 
-    public Double getCasingAccessoire() {
-        return casingAccessoire;
+    public Double getAccesoriesCasing() {
+        return accesoriesCasing;
     }
 
-    public void setCasingAccessoire(Double casingAccessoire) {
-        this.casingAccessoire = casingAccessoire;
+    public void setAccesoriesCasing(Double casingAccessoire) {
+        this.accesoriesCasing = casingAccessoire;
     }
 
     public Double getRunCasing() {
@@ -121,11 +121,11 @@ public class PhasePrevision {
     }
 
     public Double getDrillingBit() {
-        return drillingBit;
+        return bits;
     }
 
     public void setDrillingBit(Double drillingBit) {
-        this.drillingBit = drillingBit;
+        this.bits = drillingBit;
     }
 
     public Double getCorring() {
@@ -161,11 +161,11 @@ public class PhasePrevision {
     }
 
     public Double getSecurite() {
-        return securite;
+        return security;
     }
 
     public void setSecurite(Double securite) {
-        this.securite = securite;
+        this.security = securite;
     }
 
     public Double getTotal() {

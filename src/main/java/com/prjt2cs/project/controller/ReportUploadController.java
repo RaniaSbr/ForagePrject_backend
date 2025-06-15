@@ -397,7 +397,7 @@ public class ReportUploadController {
             // Debug info
             System.out.println("DailyCost created with ID: " + savedDailyCost.getId());
             System.out.println("Sample DailyCost values:");
-            System.out.println("  Drilling Rig: " + dailyCost.getDrillingRig());
+            System.out.println("  Drilling Rig: " + dailyCost.getDrilling());
             System.out.println("  Mud Logging: " + dailyCost.getMudLogging());
             System.out.println("  Drilling Mud: " + dailyCost.getDrillingMud());
 
@@ -463,7 +463,7 @@ public class ReportUploadController {
         // dailyCost.setSecurity(evaluateCell(fileBytes, column, 83, sheetIndex));
 
         // Read values for each cost category from the Excel sheet
-        dailyCost.setDrillingRig(evaluateCell(fileBytes, column, 12, sheetIndex));
+        dailyCost.setDrilling(evaluateCell(fileBytes, column, 12, sheetIndex));
         dailyCost.setMudLogging(evaluateCell(fileBytes, column, 17, sheetIndex));
         dailyCost.setDownwholeTools(evaluateCell(fileBytes, column, 21, sheetIndex));
         dailyCost.setDrillingMud(evaluateCell(fileBytes, column, 26, sheetIndex));
@@ -481,7 +481,7 @@ public class ReportUploadController {
         dailyCost.setSecurity(evaluateCell(fileBytes, column, 84, sheetIndex));
         dailyCost.setDailyCost(evaluateCell(fileBytes, column, 86, sheetIndex));
         // Check if at least one value was set properly
-        boolean hasAtLeastOneValue = dailyCost.getDrillingRig() > 0 || dailyCost.getMudLogging() > 0 ||
+        boolean hasAtLeastOneValue = dailyCost.getDrilling() > 0 || dailyCost.getMudLogging() > 0 ||
                 dailyCost.getDownwholeTools() > 0 || dailyCost.getDrillingMud() > 0 ||
                 dailyCost.getSolidControl() > 0 || dailyCost.getElectricServices() > 0 ||
                 dailyCost.getBits() > 0 || dailyCost.getCasing() > 0 ||
@@ -963,7 +963,7 @@ public class ReportUploadController {
             dailyCost.setName("Daily Cost for " + report.getDate());
 
             // Utiliser une méthode helper pour convertir les valeurs de manière sécurisée
-            dailyCost.setDrillingRig(safeDoubleValue(dailyCostData.get("drillingRig")));
+            dailyCost.setDrilling(safeDoubleValue(dailyCostData.get("drillingRig")));
             dailyCost.setMudLogging(safeDoubleValue(dailyCostData.get("mudLogging")));
             dailyCost.setDownwholeTools(safeDoubleValue(dailyCostData.get("downwholeTools")));
             dailyCost.setDrillingMud(safeDoubleValue(dailyCostData.get("drillingMud")));
@@ -986,7 +986,7 @@ public class ReportUploadController {
 
             DailyCost savedDailyCost = dailyCostRepository.save(dailyCost);
             logger.info("DailyCost sauvegardé - ID: {}, DrillingRig: {}, MudLogging: {}",
-                    savedDailyCost.getId(), savedDailyCost.getDrillingRig(), savedDailyCost.getMudLogging());
+                    savedDailyCost.getId(), savedDailyCost.getDrilling(), savedDailyCost.getMudLogging());
 
             return savedDailyCost;
         } catch (Exception e) {

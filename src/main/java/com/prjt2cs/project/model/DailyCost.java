@@ -21,21 +21,22 @@ public class DailyCost {
     private String name;
     private Double drilling; // Changed to camelCase
     private Double mudLogging; // Changed to camelCase
-    private Double downwholeTools; // Changed to camelCase
+    private Double cementing; // Changed to camelCase
+    private Double waterSupply; // Changed to camelCase
     private Double drillingMud; // Changed to camelCase
-    private Double solidControl; // Changed to camelCase
-    private Double electricServices; // Changed to camelCase
-    private Double bits; // Changed to camelCase
-    private Double casing; // Changed to camelCase
     private Double accesoriesCasing; // Changed to camelCase
     private Double casingTubing; // Changed to camelCase
-    private Double cementing; // Changed to camelCase
+    private Double security; // Changed to camelCase
+    private Double bits; // Changed to camelCase
+    private Double dailyCost; // Changed to camelCase
+
+    private Double downwholeTools; // Changed to camelCase
+    private Double solidControl; // Changed to camelCase
+    private Double electricServices; // Changed to camelCase
+    private Double casing; // Changed to camelCase
     private Double rigSupervision; // Changed to camelCase
     private Double communications; // Changed to camelCase
-    private Double waterSupply; // Changed to camelCase
     private Double waterServices; // Changed to camelCase
-    private Double security; // Changed to camelCase
-    private Double dailyCost; // Changed to camelCase
 
     @OneToOne(mappedBy = "dailyCost")
     @JsonBackReference
@@ -87,11 +88,11 @@ public class DailyCost {
         this.name = name;
     }
 
-    public Double getDrillingRig() {
+    public Double getDrilling() {
         return drilling;
     }
 
-    public void setDrillingRig(Double drillingRig) {
+    public void setDrilling(Double drillingRig) {
         this.drilling = drillingRig;
     }
 

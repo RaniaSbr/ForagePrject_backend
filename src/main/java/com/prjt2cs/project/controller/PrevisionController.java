@@ -52,8 +52,8 @@ public class PrevisionController {
                     String phaseName = switch (sheetIndex) {
                         case 0 -> "26\"";
                         case 1 -> "16\"";
-                        case 2 -> "12\"1/4";
-                        case 3 -> "8\"1/2";
+                        case 2 -> "12\"";
+                        case 3 -> "8\"";
                         default -> String.valueOf(sheetIndex);
                     };
                     phase.setPhaseName(phaseName);
@@ -65,7 +65,7 @@ public class PrevisionController {
                     phase.setWaterSupply(parseDoubleOrZero(readCellFromFile(file, "B", 5, sheetIndex)));
                     phase.setWellHead(parseDoubleOrZero(readCellFromFile(file, "B", 6, sheetIndex)));
                     phase.setCasingTubing(parseDoubleOrZero(readCellFromFile(file, "B", 7, sheetIndex)));
-                    phase.setCasingAccessoire(parseDoubleOrZero(readCellFromFile(file, "B", 8, sheetIndex)));
+                    phase.setAccesoriesCasing(parseDoubleOrZero(readCellFromFile(file, "B", 8, sheetIndex)));
                     phase.setRunCasing(parseDoubleOrZero(readCellFromFile(file, "B", 9, sheetIndex)));
                     phase.setDrillingBit(parseDoubleOrZero(readCellFromFile(file, "B", 10, sheetIndex)));
                     phase.setCorring(parseDoubleOrZero(readCellFromFile(file, "B", 11, sheetIndex)));
