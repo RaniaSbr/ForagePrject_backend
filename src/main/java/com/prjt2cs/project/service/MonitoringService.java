@@ -160,8 +160,8 @@ public class MonitoringService {
                     .max()
                     .orElse(0);
             double depthReel = reportsForPhase.stream()
-                    .filter(r -> r.getDay() != null && r.getDepth() != null)
-                    .max(Comparator.comparingInt(r -> r.getDay().intValue()))
+                    .filter(r -> r.getId() != null && r.getDepth() != null)
+                    .max(Comparator.comparingInt(r -> r.getId().intValue()))
                     .map(Report::getDepth)
                     .orElse(0.0);
 

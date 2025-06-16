@@ -21,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -73,6 +74,67 @@ public class ReportUploadController {
         return ResponseEntity.ok(rapports);
     }
 
+    @PutMapping("/{id}/depth")
+    public ResponseEntity<String> updateReportDepth(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> requestBody) {
+
+        try {
+            // Vérifier que le rapport existe
+            Optional<Report> reportOpt = reportRepository.findById(id);
+            if (!reportOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Report report = reportOpt.get();
+
+            // Récupérer et valider la nouvelle valeur de depth
+            Object depthValue = requestBody.get("depth");
+            if (depthValue == null) {
+                return ResponseEntity.badRequest()
+                        .body("La valeur 'depth' est requise dans le body de la requête");
+            }
+
+            // Convertir la valeur en double de manière sécurisée
+            double newDepth;
+            try {
+                newDepth = safeDoubleValue(depthValue);
+            } catch (Exception e) {
+                return ResponseEntity.badRequest()
+                        .body("Valeur 'depth' invalide. Doit être un nombre.");
+            }
+
+            // Validation optionnelle : vérifier que la depth est positive
+            if (newDepth < 0) {
+                return ResponseEntity.badRequest()
+                        .body("La profondeur ne peut pas être négative");
+            }
+
+            // Sauvegarder l'ancienne valeur pour le log
+            double oldDepth = report.getDepth();
+
+            // Mettre à jour la depth
+            report.setDepth(newDepth);
+
+            // Sauvegarder le rapport
+            Report updatedReport = reportRepository.save(report);
+
+            // Log de l'opération
+            logger.info("Depth du rapport ID {} mise à jour: {} -> {}",
+                    id, oldDepth, newDepth);
+
+            // Retourner une réponse de succès avec les détails
+            return ResponseEntity.ok(String.format(
+                    "Profondeur du rapport ID %d mise à jour avec succès. Ancienne valeur: %.2f, Nouvelle valeur: %.2f",
+                    id, oldDepth, newDepth));
+
+        } catch (Exception e) {
+            logger.error("Erreur lors de la mise à jour de la depth pour le rapport ID {}: {}",
+                    id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erreur interne lors de la mise à jour: " + e.getMessage());
+        }
+    }
     // @PostMapping("/upload")
     // public ResponseEntity<String> createReportFromExcel(@RequestParam("file")
     // MultipartFile file,
