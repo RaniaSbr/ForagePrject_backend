@@ -3,18 +3,21 @@ package com.prjt2cs.project.controller;
 import com.prjt2cs.project.model.DailyCost;
 import com.prjt2cs.project.model.Operation;
 import com.prjt2cs.project.model.Report;
+import com.prjt2cs.project.model.Notification;
 import com.prjt2cs.project.repository.ReportRepository;
 import com.prjt2cs.project.repository.DailyCostRepository;
 import com.prjt2cs.project.repository.OperationRepository;
 import com.prjt2cs.project.model.Puit;
 import com.prjt2cs.project.repository.PuitRepository;
 import com.prjt2cs.project.service.ExcelReader;
+import com.prjt2cs.project.service.NotificationService;
 import java.util.Base64;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -46,6 +49,9 @@ public class ReportUploadController {
     private final DailyCostRepository dailyCostRepository;
     private final PuitRepository puitRepository;
     private final ExcelReader excelReader;
+    @Autowired
+    private NotificationService notificationService;
+
 
     public ReportUploadController(
             ReportRepository reportRepository,
@@ -677,6 +683,20 @@ public class ReportUploadController {
             // Sauvegarder le rapport
             Report savedReport = reportRepository.save(report);
             logger.info("Rapport sauvegardé avec ID: {}", savedReport.getId());
+// notification
+// Dans ReportUploadController
+notificationService.createNotification(
+    Notification.Type.INFO,
+    Notification.Category.REPORT,
+    "Fichier bien reçu",
+    "Le rapport du puits " + report.getPuit().getPuitName() + " a été soumis avec succès.",
+    report.getPuit().getPuitId(),
+    report.getId()
+);
+
+
+
+
 
             // Sauvegarder les opérations modifiées
             List<Map<String, Object>> operationsData = (List<Map<String, Object>>) confirmData.get("operations");
@@ -702,6 +722,7 @@ public class ReportUploadController {
         }
     }
 
+    
     // Méthodes utilitaires
     private double parseDouble(String value, double defaultValue) {
         try {
@@ -1067,5 +1088,6 @@ public class ReportUploadController {
         }
         return value.toString().trim();
     }
+    
 
 }
